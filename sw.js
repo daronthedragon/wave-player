@@ -1,11 +1,14 @@
 /* Bump this version whenever a new release changes the offline shell. */
-const CACHE_NAME = 'wave-shell-v3';
+const CACHE_NAME = 'wave-shell-v4';
 const BASE = new URL('./', self.location.href);
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
-  './src/main.js', './src/styles.css', './src/audio-engine.js', './src/visualizer.js',
+  './src/main.js', './src/styles.css', './src/audio-engine.js', './src/visualizer.js', './src/ps3-wave.js',
+  './src/transcoder.js', './src/transcoder-worker.js',
+  './vendor/ffmpeg/ffmpeg-core.js', './vendor/ffmpeg/ffmpeg-core.wasm',
   './assets/wave-background.svg', './assets/cover-drift.svg',
   './assets/cover-nocturne.svg', './assets/cover-orbit.svg',
+  './assets/ps3/xmb_icon_001.png', './assets/ps3/xmb_icon_003.png', './assets/ps3/xmb_icon_004.png', './assets/ps3/xmb_icon_037.png', './assets/ps3/xmb_icon_008.png', './assets/ps3/icon_fw_track.png', './assets/ps3/icon_fw_folder.png',
   './assets/favicon.svg', './assets/icon-192.png', './assets/icon-512.png'
 ].map(path => new URL(path, BASE).href);
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PlayerEngine, metadataFromName } from '../src/audio-engine.js';
+import { PlayerEngine, metadataFromName, mediaKind } from '../src/audio-engine.js';
 
 class FakeAudio extends EventTarget {
   constructor() { super(); this.paused = true; this.ended = false; this.volume = 0.75; this.duration = NaN; this.currentTime = 0; this.src = ''; }
@@ -137,6 +137,7 @@ function memoryIndexedDB() {
           transaction() {
             const transaction = { objectStore: () => ({
               getAll: () => ({ result: [...records.values()].sort((a, b) => a.id.localeCompare(b.id)).map(record => structuredClone(record)) }),
+              get: id => ({ result: records.has(id) ? structuredClone(records.get(id)) : undefined }),
               put: record => { records.set(record.id, structuredClone(record)); return { result: record.id }; },
               delete: id => { records.delete(id); return {}; },
               clear: () => { records.clear(); return {}; },
@@ -230,4 +231,98 @@ test('shuffle and removal stay inside the active queue', async () => {
   await engine.play();
   assert.equal(engine.current, null);
   engine.dispose();
+});
+
+test('audio/video imports use MIME and filename fallback, retaining original names', async () => {
+  const engine = new PlayerEngine();
+  const videoNames = ['sample.mp4', 'sample.MKV', 'sample.mov', 'sample.m4v', 'sample.webm', 'sample.avi', 'sample.wmv', 'sample.mpg', 'sample.mpeg', 'sample.ts', 'sample.mts', 'sample.m2ts', 'sample.flv', 'sample.3gp', 'sample.ogv'];
+  await engine.addFiles([
+    ...videoNames.map(name => file(name, '')),
+    file('unusual.container', 'video/x-custom'),
+    file('sound.mp4', 'audio/mp4'),
+    file('song.weba', ''),
+    file('song.mka', ''),
+    null,
+  ]);
+  assert.equal(engine.tracks.length, videoNames.length + 4);
+  assert.equal(engine.tracks.filter(track => track.kind === 'video').length, videoNames.length + 1);
+  assert.equal(engine.tracks.find(track => track.fileName === 'sound.mp4').kind, 'audio');
+  assert.equal(engine.tracks[0].originalFileName, 'sample.mp4');
+  assert.equal(engine.tracks[0].album, 'Imported videos');
+  assert.equal(mediaKind('unknown.xyz', ''), null);
+  engine.dispose();
+});
+
+test('supplied video element drives playback, metadata, and conversion error events', async () => {
+  const video = new FakeAudio();
+  const engine = new PlayerEngine({ media: video });
+  assert.equal(engine.audio, video);
+  assert.equal(video.playsInline, true);
+  const events = [];
+  engine.addEventListener('decodeerror', event => events.push(event.detail));
+  await engine.addFiles([file('scene.mkv', '')]);
+  video.duration = 123;
+  video.videoWidth = 1920;
+  video.videoHeight = 1080;
+  video.dispatchEvent(new Event('loadedmetadata'));
+  assert.equal(engine.current.duration, 123);
+  assert.equal(engine.current.videoWidth, 1920);
+  await engine.play();
+  assert.equal(engine.snapshot.playing, true);
+  video.error = { code: 4 };
+  video.dispatchEvent(new Event('error'));
+  assert.equal(events.length, 1);
+  assert.equal(events[0].id, engine.current.id);
+  assert.equal(events[0].kind, 'video');
+  assert.equal(engine.snapshot.playing, false, 'decode failures stop playback before opening conversion UI');
+  video.error = { code: 2 };
+  video.dispatchEvent(new Event('error'));
+  assert.equal(events.length, 1, 'network errors should not suggest codec conversion');
+  engine.dispose();
+  const direct = new PlayerEngine(video);
+  assert.equal(direct.audio, video);
+  direct.dispose();
+});
+
+test('media replacement retains identity, refreshes active source and persists the converted blob', async () => {
+  globalThis.indexedDB = memoryIndexedDB();
+  try {
+    const engine = new PlayerEngine({ media: new FakeAudio() });
+    await engine.addFiles([file('Camera - Holiday.mkv', ''), file('song.mp3')]);
+    const { id, title, url } = engine.current;
+    const original = await engine.getFile(id);
+    assert.equal(await original.text(), 'audio-fixture');
+    await engine.play();
+    const replacement = new Blob(['converted-video'], { type: 'video/mp4' });
+    await engine.replaceMedia(id, replacement, { fileName: 'Holiday.mp4' });
+    assert.equal(engine.current.id, id);
+    assert.equal(engine.current.title, title);
+    assert.equal(engine.current.originalFileName, 'Camera - Holiday.mkv');
+    assert.equal(engine.current.fileName, 'Holiday.mp4');
+    assert.equal(engine.current.kind, 'video');
+    assert.equal(engine.current.converted, true);
+    assert.notEqual(engine.current.url, url);
+    assert.equal(engine.audio.src, engine.current.url);
+    assert.equal(engine.snapshot.playing, true);
+    assert.equal(await (await engine.getFile(id)).text(), 'converted-video');
+    await assert.rejects(fetch(url), 'old object URL should be revoked');
+    const currentUrl = engine.audio.src;
+    await engine.replaceMedia(engine.tracks[1].id, new Blob(['wav-conversion']), { fileName: 'song.wav', type: 'audio/wav' });
+    assert.equal(engine.audio.src, currentUrl, 'replacing another item does not interrupt current playback');
+    engine.dispose();
+    const restored = new PlayerEngine();
+    await restored.init();
+    assert.equal(restored.current.originalFileName, 'Camera - Holiday.mkv');
+    assert.equal(restored.current.kind, 'video');
+    assert.equal(restored.current.type, 'video/mp4');
+    assert.equal(await (await restored.getFile(id)).text(), 'converted-video');
+    restored._files.delete(id);
+    assert.equal(await (await restored.getFile(id)).text(), 'converted-video', 'blob can be retrieved directly from storage');
+    assert.equal(await restored.getFile('missing'), null);
+    await restored.remove(id);
+    assert.equal(await restored.getFile(id), null);
+    restored.dispose();
+  } finally {
+    delete globalThis.indexedDB;
+  }
 });

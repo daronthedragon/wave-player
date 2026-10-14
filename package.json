@@ -1,7 +1,7 @@
 {
   "name": "wave-player",
-  "version": "1.0.1",
-  "description": "An original console-inspired offline audio player for the browser and installable web app.",
+  "version": "1.1.0",
+  "description": "An original console-inspired offline audio and video player with local format conversion.",
   "type": "module",
   "author": "Wave Player contributors",
   "license": "MIT",

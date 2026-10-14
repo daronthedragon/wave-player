@@ -1,4 +1,5 @@
-// Original procedural light ribbons and audio visualizations. No image assets.
+import { PS3WaveRenderer } from './ps3-wave.js';
+// Console-style broad silky light surfaces and audio visualizations.
 // A media element may only be wrapped once, including across visualizer instances.
 const audioGraphs = new WeakMap();
 const palettes = {
@@ -18,6 +19,7 @@ export class WaveVisualizer {
   constructor(canvas, { audio, getTheme = () => 'blue', getReducedMotion = () => false } = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d', { alpha: false });
+    try { this.consoleWave = new PS3WaveRenderer(); } catch { this.consoleWave = null; }
     this.getTheme = getTheme;
     this.getReducedMotion = getReducedMotion;
     this.audio = null;
@@ -171,7 +173,11 @@ export class WaveVisualizer {
     glow.addColorStop(1, `rgba(${this.tint},0)`);
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, w, h);
-    this.ribbons(this.mode === 'wave', reduced);
+    if (this.consoleWave) {
+      const frame = this.consoleWave.render(w * this.dpr, h * this.dpr, reduced ? 1.6 : this.phase, theme, this.mode === 'wave' ? this.energy : 0);
+      if (frame) ctx.drawImage(frame, 0, 0, w, h);
+      else this.ribbons(this.mode === 'wave', reduced);
+    } else this.ribbons(this.mode === 'wave', reduced);
     if (this.mode === 'spectrum') this.spectrum(reduced);
     if (this.mode === 'orbit') this.orbit(reduced);
     if (!reduced) this.particles();
@@ -193,6 +199,31 @@ export class WaveVisualizer {
 
   ribbons(reactive, reduced) {
     const { ctx, width: w, height: h } = this;
+    if (!reactive) {
+      // CPU fallback keeps the broad, folded surface when WebGL is unavailable.
+      const phase = reduced ? 0.6 : this.phase;
+      for (let layer = 2; layer >= 0; layer--) {
+        const curve = (x, lower) => {
+          const p = x / w;
+          const center = h * (0.56 - Math.sin(p * 5.2 + phase * 0.34 + layer * 0.35) * 0.084 - Math.sin(p * 2.9 - phase * 0.2 + layer * 0.22) * 0.042);
+          const breadth = h * (0.028 + 0.055 * (0.5 + 0.5 * Math.sin(p * 4.2 - phase * 0.17 + layer * 0.7)));
+          return center + (lower ? 0.45 : -0.75) * breadth;
+        };
+        const surface = ctx.createLinearGradient(0, h * 0.42, 0, h * 0.7);
+        surface.addColorStop(0, 'rgba(226,235,250,.3)');
+        surface.addColorStop(0.45, 'rgba(183,196,215,.16)');
+        surface.addColorStop(1, 'rgba(150,166,191,.01)');
+        ctx.beginPath();
+        ctx.moveTo(-12, curve(-12, false));
+        for (let x = 0; x <= w + 12; x += 12) ctx.lineTo(x, curve(x, false));
+        for (let x = w + 12; x >= -12; x -= 12) ctx.lineTo(x, curve(x, true));
+        ctx.closePath();ctx.fillStyle = surface;ctx.fill();
+        ctx.beginPath();ctx.moveTo(-12, curve(-12, false));
+        for (let x = 0; x <= w + 12; x += 12) ctx.lineTo(x, curve(x, false));
+        ctx.strokeStyle = 'rgba(222,233,249,.2)';ctx.lineWidth = 0.7;ctx.stroke();
+      }
+      return;
+    }
     const count = this.lowPower ? 22 : 38;
     const step = reactive ? 5 : 12;
     ctx.globalCompositeOperation = 'screen';
@@ -298,6 +329,7 @@ export class WaveVisualizer {
     window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onVisibility);
     this.setAudio(null);
+    this.consoleWave?.destroy();
     // Keep the element's graph alive: closing it would permanently silence that
     // media element. WeakMap ownership permits reuse without a second source.
   }

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "WAVE Player",
   "short_name": "WAVE",
-  "description": "Your music, in a handheld-inspired player. Import local audio and listen offline.",
+  "description": "An XMB media player for local audio and video, with offline playback and format conversion.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,5 +1,14 @@
 const DB_NAME = 'waveform-player-library';
-const AUDIO_EXTENSIONS = /\.(mp3|wav|wave|flac|aac|m4a|m4b|ogg|oga|opus|aif|aiff|wma|webm|weba|mp4|caf|alac|ape|amr|3gp)$/i;
+const AUDIO_EXTENSIONS = /\.(mp3|mp2|wav|wave|flac|aac|m4a|m4b|ogg|oga|opus|aif|aiff|wma|weba|caf|alac|ape|amr|ac3|dts|mka|aiffc|aifc|au|snd)$/i;
+const VIDEO_EXTENSIONS = /\.(mp4|m4v|mov|qt|mkv|webm|avi|wmv|asf|mpg|mpeg|mpe|m1v|m2v|ts|mts|m2ts|flv|f4v|3gp|3g2|ogv|vob|divx|rm|rmvb)$/i;
+
+export function mediaKind(fileName, type = '') {
+  if (type.startsWith('video/')) return 'video';
+  if (type.startsWith('audio/')) return 'audio';
+  if (VIDEO_EXTENSIONS.test(fileName || '')) return 'video';
+  if (AUDIO_EXTENSIONS.test(fileName || '')) return 'audio';
+  return null;
+}
 const DEMOS = [
   { id: 'demo-orbit', title: 'Orbital', artist: 'WAVE Sound Lab', album: 'Signals from Home', artwork: 'assets/cover-orbit.svg', notes: [130.81, 164.81, 196, 261.63] },
   { id: 'demo-drift', title: 'Slow drift', artist: 'WAVE Sound Lab', album: 'Signals from Home', artwork: 'assets/cover-drift.svg', notes: [110, 130.81, 164.81, 220] },
@@ -42,10 +51,12 @@ function createWave(notes, seconds = 24) {
 }
 
 export class PlayerEngine extends EventTarget {
-  constructor() {
+  constructor(options = {}) {
     super();
-    this.audio = new Audio();
+    // Keep the audio alias for the shared transport and Web Audio visualizer.
+    this.audio = (typeof options?.play === 'function' ? options : options?.media) || new Audio();
     this.audio.preload = 'metadata';
+    this.audio.playsInline = true;
     this.audio.volume = 0.75;
     this.tracks = [];
     this.currentIndex = -1;
@@ -59,9 +70,18 @@ export class PlayerEngine extends EventTarget {
     this._queueIds = null;
     this._disposed = false;
     this._listeners = [];
+    this._files = new Map();
     for (const type of ['play', 'pause', 'playing', 'volumechange']) this._listen(type, () => this._emit());
     this._listen('loadedmetadata', () => {
-      if (this.current && Number.isFinite(this.audio.duration)) this.current.duration = this.audio.duration;
+      if (this.current) {
+        if (Number.isFinite(this.audio.duration)) this.current.duration = this.audio.duration;
+        if (this.audio.videoWidth > 0) {
+          this.current.kind = 'video';
+          this.current.videoWidth = this.audio.videoWidth;
+          this.current.videoHeight = this.audio.videoHeight;
+        }
+        void this._persistTrack(this.current).catch(() => {});
+      }
       this._emit();
     });
     this._listen('durationchange', () => this._emit());
@@ -72,8 +92,14 @@ export class PlayerEngine extends EventTarget {
     });
     this._listen('error', () => {
       if (!this.current) return;
-      const messages = { 2: 'This audio file could not be read.', 3: 'This file could not be decoded.', 4: 'This audio format is not supported by your browser.' };
-      this._error(`${messages[this.audio.error?.code] || 'Unable to play this file.'} Try an MP3, WAV, Ogg, or FLAC file supported by your device.`);
+      const kind = this.current.kind || 'audio';
+      const messages = { 2: 'This media file could not be read.', 3: 'This file could not be decoded.', 4: 'This media format is not supported by your browser.' };
+      const message = messages[this.audio.error?.code] || 'Unable to play this file.';
+      this.audio.pause();
+      this._error(message);
+      if (this.audio.error?.code === 3 || this.audio.error?.code === 4) {
+        this.dispatchEvent(new CustomEvent('decodeerror', { detail: { id: this.current.id, message, kind } }));
+      }
       this._emit();
     });
     this._setupMediaSession();
@@ -122,7 +148,8 @@ export class PlayerEngine extends EventTarget {
         for (const record of (saved || []).sort((a, b) => finite(a.addedAt) - finite(b.addedAt))) {
           if (record.blob instanceof Blob && !this.tracks.some(track => track.id === record.id)) {
             const { blob, ...metadata } = record;
-            this.tracks.push({ ...metadata, url: URL.createObjectURL(blob) });
+            this._files.set(record.id, blob);
+            this.tracks.push({ ...metadata, kind: metadata.kind || mediaKind(metadata.fileName, metadata.type) || 'audio', originalFileName: metadata.originalFileName || metadata.fileName, url: URL.createObjectURL(blob) });
           }
         }
         if (this.currentIndex < 0 && this.tracks.length) this.select(this.tracks[0].id, false);
@@ -148,6 +175,57 @@ export class PlayerEngine extends EventTarget {
     try { localStorage.setItem('waveform-player-settings', JSON.stringify({ volume: this.audio.volume, shuffle: this.shuffle, repeat: this.repeat })); } catch { /* Optional persistence. */ }
   }
 
+  async _persistTrack(track) {
+    const blob = this._files.get(track.id);
+    if (!blob) return;
+    const { url, ...metadata } = track;
+    await this._store('readwrite', store => store.put({ ...metadata, blob }));
+  }
+
+  async getFile(id) {
+    await this.init();
+    if (!this.tracks.some(track => track.id === id)) return null;
+    if (this._files.has(id)) return this._files.get(id);
+    const record = await this._store('readonly', store => store.get(id));
+    if (!(record?.blob instanceof Blob)) return null;
+    this._files.set(id, record.blob);
+    return record.blob;
+  }
+
+  async replaceMedia(id, blob, { fileName, type } = {}) {
+    if (!(blob instanceof Blob)) throw new TypeError('Replacement media must be a Blob or File.');
+    await this.init();
+    const track = this.tracks.find(item => item.id === id);
+    if (!track) return null;
+    const isCurrent = this.current?.id === id;
+    const wasPlaying = isCurrent && !this.audio.paused;
+    const oldUrl = track.url;
+    const replacementType = type || blob.type || track.type;
+    const replacement = replacementType !== blob.type ? new Blob([blob], { type: replacementType }) : blob;
+    Object.assign(track, {
+      originalFileName: track.originalFileName || track.fileName,
+      fileName: fileName || blob.name || track.fileName,
+      type: replacementType,
+      duration: 0,
+      converted: true,
+      url: URL.createObjectURL(replacement),
+    });
+    delete track.videoWidth;
+    delete track.videoHeight;
+    this._files.set(id, replacement);
+    if (isCurrent) {
+      this.audio.pause();
+      this.audio.src = track.url;
+      this.audio.load();
+      this._updateMediaSession();
+      if (wasPlaying) void this.play();
+    }
+    URL.revokeObjectURL(oldUrl);
+    this._emit();
+    try { await this._persistTrack(track); } catch { this._error('The converted file is ready to play, but browser storage is full or unavailable.'); }
+    return { ...track };
+  }
+
   _nextAddedAt() {
     return this.tracks.reduce((next, track) => Math.max(next, finite(track.addedAt) + 1), Date.now());
   }
@@ -158,17 +236,20 @@ export class PlayerEngine extends EventTarget {
     let rejected = 0;
     let storageFailed = false;
     for (const file of Array.from(files || [])) {
-      if (!(file instanceof Blob) || (!file.type.startsWith('audio/') && !AUDIO_EXTENSIONS.test(file.name || ''))) { rejected += 1; continue; }
+      if (!(file instanceof Blob)) { rejected += 1; continue; }
+      const kind = mediaKind(file.name, file.type);
+      if (!kind) { rejected += 1; continue; }
       const signature = `${file.name}:${file.size}:${file.lastModified || 0}`;
       if (this.tracks.some(track => track.signature === signature)) continue;
-      const metadata = { id: globalThis.crypto?.randomUUID?.() || `audio-${Date.now()}-${Math.random().toString(36).slice(2)}`, ...metadataFromName(file.name), fileName: file.name, type: file.type, duration: 0, signature, addedAt: this._nextAddedAt() };
+      const metadata = { id: globalThis.crypto?.randomUUID?.() || `media-${Date.now()}-${Math.random().toString(36).slice(2)}`, ...metadataFromName(file.name), album: kind === 'video' ? 'Imported videos' : 'Imported audio', fileName: file.name, originalFileName: file.name, type: file.type, kind, duration: 0, signature, addedAt: this._nextAddedAt() };
       const track = { ...metadata, url: URL.createObjectURL(file) };
+      this._files.set(track.id, file);
       this.tracks.push(track); added.push(track);
       try { await this._store('readwrite', store => store.put({ ...metadata, blob: file })); } catch { storageFailed = true; }
     }
     if (this.currentIndex < 0 && this.tracks.length) this.select(this.tracks[0].id, false);
     this._emit();
-    if (rejected) this._error(`${rejected} non-audio ${rejected === 1 ? 'file was' : 'files were'} skipped.`);
+    if (rejected) this._error(`${rejected} non-media ${rejected === 1 ? 'file was' : 'files were'} skipped.`);
     if (storageFailed) this._error('Your files are ready to play, but browser storage is full or unavailable. Add them again next time.');
     return added;
   }
@@ -180,7 +261,8 @@ export class PlayerEngine extends EventTarget {
       for (const { notes, ...metadata } of DEMOS) {
         if (this.tracks.some(track => track.id === metadata.id)) continue;
         const blob = createWave(notes);
-        const record = { ...metadata, fileName: `${metadata.title}.wav`, type: 'audio/wav', duration: 24, demo: true, addedAt: this._nextAddedAt() };
+        const record = { ...metadata, fileName: `${metadata.title}.wav`, originalFileName: `${metadata.title}.wav`, kind: 'audio', type: 'audio/wav', duration: 24, demo: true, addedAt: this._nextAddedAt() };
+        this._files.set(record.id, blob);
         this.tracks.push({ ...record, url: URL.createObjectURL(blob) });
         try { await this._store('readwrite', store => store.put({ ...record, blob })); } catch { /* Demos can always be regenerated from settings. */ }
         // Give the interface a frame between generating each original demo.
@@ -297,6 +379,7 @@ export class PlayerEngine extends EventTarget {
       if (queue.length) this.select(queue[Math.min(Math.max(queueIndex, 0), queue.length - 1)].id, wasPlaying);
     } else if (index < this.currentIndex) this.currentIndex -= 1;
     URL.revokeObjectURL(track.url);
+    this._files.delete(id);
     this._history = this._history.filter(previous => previous !== id);
     this._shufflePlayed.delete(id);
     this._updateMediaSession();
@@ -307,6 +390,7 @@ export class PlayerEngine extends EventTarget {
   async clear() {
     this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
     this.tracks.forEach(track => URL.revokeObjectURL(track.url));
+    this._files.clear();
     this.tracks = []; this.currentIndex = -1; this._history = []; this._shufflePlayed.clear(); this._queueIds = null;
     this._updateMediaSession(); this._emit();
     try { await this._store('readwrite', store => store.clear()); } catch { this._error('The library was cleared for this session, but saved files could not be deleted.'); }
@@ -331,6 +415,7 @@ export class PlayerEngine extends EventTarget {
     this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
     for (const [type, handler] of this._listeners) this.audio.removeEventListener(type, handler);
     this.tracks.forEach(track => URL.revokeObjectURL(track.url));
+    this._files.clear();
     this.db?.close();
   }
 }
