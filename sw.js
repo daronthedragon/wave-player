@@ -1,10 +1,10 @@
 /* Bump this version whenever a new release changes the offline shell. */
-const CACHE_NAME = 'wave-shell-v4';
+const CACHE_NAME = 'wave-shell-v5';
 const BASE = new URL('./', self.location.href);
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
-  './src/main.js', './src/styles.css', './src/audio-engine.js', './src/visualizer.js', './src/ps3-wave.js',
-  './src/transcoder.js', './src/transcoder-worker.js',
+  './src/main.js?v=1.1.1', './src/styles.css?v=1.1.1', './src/audio-engine.js?v=1.1.1', './src/visualizer.js?v=1.1.1', './src/ps3-wave.js?v=1.1.1',
+  './src/transcoder.js?v=1.1.1', './src/transcoder-worker.js?v=1.1.1',
   './vendor/ffmpeg/ffmpeg-core.js', './vendor/ffmpeg/ffmpeg-core.wasm',
   './assets/wave-background.svg', './assets/cover-drift.svg',
   './assets/cover-nocturne.svg', './assets/cover-orbit.svg',
@@ -13,7 +13,7 @@ const SHELL = [
 ].map(path => new URL(path, BASE).href);
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL)));
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL.map(url => new Request(url, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', event => {
@@ -32,7 +32,7 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     try {
-      const response = await fetch(request);
+      const response = await fetch(request, { cache: 'no-cache' });
       if (response.ok && response.type === 'basic') await cache.put(request, response.clone());
       return response;
     } catch {

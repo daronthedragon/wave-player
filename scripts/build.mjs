@@ -21,7 +21,7 @@ let main = await readFile(path.join(root, 'src/main.js'), 'utf8');
 // scopes. Reject cycles or unsupported import forms rather than silently emit
 // a broken offline artifact. Current modules form an acyclic dependency tree.
 async function bundleImports(sourceText, ancestors = ['main.js']) {
-const imports = [...sourceText.matchAll(/^import\s*\{([^}]+)\}\s*from\s*['"]\.\/([\w.-]+\.js)['"];?\s*/gm)];
+const imports = [...sourceText.matchAll(/^import\s*\{([^}]+)\}\s*from\s*['"]\.\/([\w.-]+\.js)(?:\?[^'"\r\n]*)?['"];?\s*/gm)];
 for (const match of imports.reverse()) {
   const [, names, filename] = match;
   if (ancestors.includes(filename)) throw new Error(`Circular standalone module import: ${[...ancestors, filename].join(' -> ')}`);
@@ -68,8 +68,8 @@ for (const filename of await assetFiles(path.join(root, 'assets'))) {
   }
 }
 html = html.replace(/<link\b[^>]*rel=["']manifest["'][^>]*>/gi, '');
-const stylesheet = /<link\b[^>]*href=["'](?:\.\/)?src\/styles\.css["'][^>]*>/i;
-const moduleScript = /<script\b[^>]*src=["'](?:\.\/)?src\/main\.js["'][^>]*>\s*<\/script>/i;
+const stylesheet = /<link\b[^>]*href=["'](?:\.\/)?src\/styles\.css(?:\?[^'"\r\n]*)?["'][^>]*>/i;
+const moduleScript = /<script\b[^>]*src=["'](?:\.\/)?src\/main\.js(?:\?[^'"\r\n]*)?["'][^>]*>\s*<\/script>/i;
 if (!stylesheet.test(html) || !moduleScript.test(html)) throw new Error('Could not locate stylesheet or app module for standalone build');
 html = html.replace(stylesheet, () => `<style>${css.replace(/<\/style/gi, '<\\/style')}</style>`);
 html = html.replace(moduleScript, () => `<script>${script.replace(/<\/script/gi, '<\\/script')}</script>`);
