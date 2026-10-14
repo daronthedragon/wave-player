@@ -1,0 +1,14 @@
+{
+  "name": "wave-player",
+  "version": "1.0.0",
+  "description": "An original console-inspired offline audio player for the browser and installable web app.",
+  "type": "module",
+  "author": "Wave Player contributors",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": { "node": ">=22.12.0" }
+}

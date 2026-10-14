@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Drift — original WAVE cover artwork</title>
+  <desc id="desc">A translucent blue glass form suspended in a soft blue field.</desc>
+  <defs>
+    <linearGradient id="bg" x2=".9" y2="1"><stop stop-color="#bfd9eb"/><stop offset=".46" stop-color="#80b4d1"/><stop offset="1" stop-color="#365ba0"/></linearGradient>
+    <linearGradient id="glass" x1=".1" y1="0" x2=".85" y2="1"><stop stop-color="#e3fbff" stop-opacity=".95"/><stop offset=".2" stop-color="#a6e7fb" stop-opacity=".38"/><stop offset=".42" stop-color="#1c73ba" stop-opacity=".87"/><stop offset=".62" stop-color="#a2e8f9" stop-opacity=".78"/><stop offset=".84" stop-color="#1c69ac"/><stop offset="1" stop-color="#bdedfa"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="#f4ffff"/><stop offset=".36" stop-color="#c1ffff" stop-opacity=".6"/><stop offset=".6" stop-color="#1262a9"/><stop offset="1" stop-color="#d5fbff"/></linearGradient>
+    <radialGradient id="light"><stop stop-color="#edffff" stop-opacity=".8"/><stop offset="1" stop-color="#c5eaff" stop-opacity="0"/></radialGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="24"/></filter>
+    <filter id="grain"><feTurbulence baseFrequency=".75" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".045"/></feComponentTransfer></filter>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h800v800H0z"/>
+  <circle cx="220" cy="164" r="395" fill="url(#light)"/>
+  <ellipse cx="413" cy="639" rx="221" ry="53" fill="#194f83" opacity=".44" filter="url(#blur)"/>
+  <path d="M182 435c-58-109 47-160 56-218 13-91 89-126 179-78 65 35 100 16 163 61 83 59 57 143 19 190-43 54 30 142-47 199-63 47-102 4-175 17-68 13-158-29-195-171Z" fill="url(#glass)" stroke="url(#rim)" stroke-width="5"/>
+  <path d="M237 217c51 38 94 51 134 18 89-74 152-64 209-35-59 4-103 40-119 81-32 83-47 142-152 151-56 5-102-8-127 3 11-63 93-139 55-218Z" fill="#ecffff" opacity=".25"/>
+  <path d="M238 217c37 75-40 145-33 208 8 73 73 121 151 97 111-33 101-140 172-172 75-32 100-79 52-150" fill="none" stroke="url(#rim)" stroke-width="12" opacity=".73"/>
+  <path d="M192 451c39 76 117 120 194 101 113-28 119-102 181-138" fill="none" stroke="#bcefff" stroke-width="2.5" opacity=".9"/>
+  <path d="M267 191c52-67 119-28 153-17M198 383c-17 38-11 64 1 85" fill="none" stroke="#f4ffff" stroke-width="4" stroke-linecap="round" opacity=".9"/>
+  <ellipse cx="355" cy="369" rx="33" ry="18" fill="#113f83" opacity=".5" transform="rotate(-35 355 369)"/>
+  <ellipse cx="360" cy="363" rx="30" ry="15" fill="#a8e5f9" opacity=".6" transform="rotate(-35 360 363)"/>
+  <rect width="800" height="800" filter="url(#grain)"/>
+</svg>

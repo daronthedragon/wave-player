@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="title">
+  <title id="title">WAVE — original flowing blue atmosphere texture</title>
+  <defs>
+    <radialGradient id="bg" cx="69%" cy="18%" r="90%"><stop stop-color="#123e8a"/><stop offset=".38" stop-color="#0a2256"/><stop offset=".7" stop-color="#07142e"/><stop offset="1" stop-color="#050b18"/></radialGradient>
+    <linearGradient id="silk" x1="0" y1=".2" x2="1" y2=".8"><stop stop-color="#669aff" stop-opacity="0"/><stop offset=".28" stop-color="#6495ff" stop-opacity=".025"/><stop offset=".56" stop-color="#4989ed" stop-opacity=".16"/><stop offset=".78" stop-color="#80b4ff" stop-opacity=".12"/><stop offset="1" stop-color="#285cdf" stop-opacity="0"/></linearGradient>
+    <linearGradient id="line"><stop stop-color="#77b4ff" stop-opacity="0"/><stop offset=".28" stop-color="#7ca8ff" stop-opacity=".06"/><stop offset=".55" stop-color="#b8d6ff" stop-opacity=".48"/><stop offset=".73" stop-color="#8abdff" stop-opacity=".26"/><stop offset="1" stop-color="#5d8bff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#3875d3" stop-opacity=".25"/><stop offset="1" stop-color="#3268b0" stop-opacity="0"/></radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".026"/></feComponentTransfer></filter>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h1920v1080H0z"/>
+  <ellipse cx="1380" cy="562" rx="660" ry="390" fill="url(#glow)"/>
+  <path d="M-160 804C233 869 503 477 929 517s519 246 1151-77v178c-420 254-710 91-1109 21S402 951-160 923Z" fill="url(#silk)"/>
+  <path d="M-160 800C225 866 516 490 930 520s534 246 1150-85" fill="none" stroke="url(#line)" stroke-width="2"/>
+  <path d="M-120 821C226 883 524 522 939 552s545 234 1158-65" fill="none" stroke="url(#line)" stroke-width="1" opacity=".5"/>
+  <path d="M-144 922C414 925 557 566 971 639s681 231 1109-21" fill="none" stroke="url(#line)" stroke-width="1" opacity=".4"/>
+  <path d="M-90 797C320 830 493 472 927 524s627 194 1093-58" fill="none" stroke="#3980eb" stroke-width="35" opacity=".12" filter="url(#soft)"/>
+  <path d="M-130 849C387 782 534 421 972 508s564 121 1036-51v43c-464 215-657 94-1042 45S381 851-130 891Z" fill="url(#silk)" opacity=".6"/>
+  <path d="M-90 850C420 798 550 424 982 511s627 104 1054-71" fill="none" stroke="url(#line)" stroke-width="1" opacity=".65"/>
+  <rect width="1920" height="1080" filter="url(#grain)"/>
+</svg>

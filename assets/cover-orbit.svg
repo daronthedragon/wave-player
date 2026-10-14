@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Orbit — original WAVE cover artwork</title>
+  <desc id="desc">A luminous sculpted silver orbit floating in a deep electric blue atmosphere.</desc>
+  <defs>
+    <radialGradient id="bg" cx="22%" cy="12%" r="110%"><stop stop-color="#3973ff"/><stop offset=".38" stop-color="#1439d8"/><stop offset=".76" stop-color="#0a1b89"/><stop offset="1" stop-color="#050c3b"/></radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".15" stop-color="#d6e9fa"/><stop offset=".32" stop-color="#8aabcc"/><stop offset=".46" stop-color="#f7ffff"/><stop offset=".57" stop-color="#d7e8ed"/><stop offset=".72" stop-color="#667fba"/><stop offset=".87" stop-color="#effaff"/><stop offset="1" stop-color="#a8ccf2"/></linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".35" stop-color="#ebf8ff"/><stop offset=".63" stop-color="#99baf2"/><stop offset="1" stop-color="#4c65a1"/></linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#192866"/><stop offset=".43" stop-color="#4f73b6"/><stop offset=".65" stop-color="#cfe5f8"/><stop offset="1" stop-color="#5e80b2"/></linearGradient>
+    <radialGradient id="halo"><stop stop-color="#678dff" stop-opacity=".6"/><stop offset="1" stop-color="#547eff" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".045"/></feComponentTransfer></filter>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h800v800H0z"/>
+  <circle cx="308" cy="255" r="355" fill="url(#halo)"/>
+  <ellipse cx="437" cy="625" rx="225" ry="56" fill="#00072e" opacity=".65" filter="url(#shadow)"/>
+  <g transform="translate(403 386) rotate(-34)">
+    <ellipse cx="0" cy="22" rx="263" ry="182" fill="none" stroke="#081859" stroke-width="63" opacity=".6" filter="url(#shadow)"/>
+    <ellipse cx="0" cy="13" rx="249" ry="157" fill="none" stroke="url(#inner)" stroke-width="100"/>
+    <ellipse rx="258" ry="172" fill="none" stroke="url(#metal)" stroke-width="77"/>
+    <ellipse cy="-9" rx="257" ry="172" fill="none" stroke="url(#edge)" stroke-width="13" opacity=".92"/>
+    <path d="M-241-66C-219-135-108-178 5-178c99 0 189 30 229 78" fill="none" stroke="#fff" stroke-width="3" opacity=".9"/>
+    <path d="M-194 70C-113 150 89 153 199 55" fill="none" stroke="#101f63" stroke-width="3" opacity=".4"/>
+  </g>
+  <g transform="translate(408 365) rotate(53)">
+    <ellipse rx="239" ry="99" fill="none" stroke="url(#metal)" stroke-width="28"/>
+    <path d="M-228-28C-176-105 128-134 229-27" fill="none" stroke="#fff" stroke-width="2.5" opacity=".95"/>
+  </g>
+  <circle cx="608" cy="196" r="3" fill="#ebfaff"/>
+  <circle cx="174" cy="530" r="2" fill="#91afff"/>
+  <path d="M45 754h69M45 740v14" stroke="#bcd3ff" opacity=".4"/>
+  <rect width="800" height="800" filter="url(#grain)" opacity=".8"/>
+</svg>

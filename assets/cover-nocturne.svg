@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">Nocturne — original WAVE cover artwork</title>
+  <desc id="desc">An undulating violet light sculpture in a quiet midnight atmosphere.</desc>
+  <defs>
+    <radialGradient id="bg" cx="58%" cy="38%" r="75%"><stop stop-color="#352578"/><stop offset=".47" stop-color="#191337"/><stop offset="1" stop-color="#090915"/></radialGradient>
+    <linearGradient id="silk" x1=".1" y1="0" x2=".8" y2="1"><stop stop-color="#5443a3"/><stop offset=".22" stop-color="#e2c5ff"/><stop offset=".37" stop-color="#8070ce"/><stop offset=".5" stop-color="#322166"/><stop offset=".66" stop-color="#a18aee"/><stop offset=".76" stop-color="#f7dfff"/><stop offset=".86" stop-color="#493385"/><stop offset="1" stop-color="#1c153a"/></linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7564cb"/><stop offset=".27" stop-color="#fce2ff"/><stop offset=".6" stop-color="#806bc2"/><stop offset="1" stop-color="#b796f0" stop-opacity="0"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="28"/></filter>
+    <filter id="grain"><feTurbulence baseFrequency=".8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".04"/></feComponentTransfer></filter>
+  </defs>
+  <path fill="url(#bg)" d="M0 0h800v800H0z"/>
+  <path d="M152 553C70 368 339 91 495 178s-39 287 51 324 141-50 124-130" fill="none" stroke="#8d58db" stroke-width="44" opacity=".28" filter="url(#glow)"/>
+  <path d="M144 561c-67-149 72-348 235-399 125-39 217 25 174 125-22 52-105 120-79 173 34 67 130 36 180-43-21 127-154 178-225 107-54-54 51-172 64-240 17-91-99-76-180-6-112 95-153 181-169 283Z" fill="url(#silk)"/>
+  <path d="M144 561c-67-149 72-348 235-399 125-39 217 25 174 125-22 52-105 120-79 173 34 67 130 36 180-43" fill="none" stroke="url(#rim)" stroke-width="3"/>
+  <path d="M173 536c-14-124 128-310 248-329 104-17 94 61 67 105-49 79-85 138-49 191 47 68 138 31 174-12" fill="none" stroke="#d0b6ff" stroke-width="1.6" opacity=".53"/>
+  <path d="M190 498c21-88 111-222 207-252M431 496c30 59 95 66 150 26" fill="none" stroke="#d8bafa" stroke-width="12" opacity=".18"/>
+  <path d="M244 279c39-51 91-93 150-113" fill="none" stroke="#fff0ff" stroke-width="2.5" opacity=".78"/>
+  <ellipse cx="402" cy="652" rx="183" ry="25" fill="#543391" opacity=".2" filter="url(#glow)"/>
+  <rect width="800" height="800" filter="url(#grain)"/>
+</svg>
