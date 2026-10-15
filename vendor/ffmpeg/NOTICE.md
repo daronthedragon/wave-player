@@ -17,7 +17,7 @@ licenses. See `assets/ps3/NOTICE.md` for their provenance and rights notice.
 ## Source and build information
 
 - WAVE source, including its conversion worker and standalone bundler:
-  <https://github.com/secretobelisks/wave-player>
+  <https://github.com/daronthedragon/wave-player>
 - ffmpeg.wasm source/build scripts at release v12.15 (core 0.12.10):
   <https://github.com/ffmpegwasm/ffmpeg.wasm/tree/71aa99d37c02a7b4c435275ca9ef50e612f6efa1>
 - Source archive:

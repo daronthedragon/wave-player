@@ -4,10 +4,10 @@ A browser and downloadable offline audio/video player with a PS3-style XMB inter
 
 ## Play, download, and install
 
-Open [WAVE Player](https://secretobelisks.github.io/wave-player/) in a modern browser. Import your own audio or video using the file picker or drag and drop. Media stays on your device: this app has no upload service or account requirement.
+Open [WAVE Player](https://daronthedragon.github.io/wave-player/) in a modern browser. Import your own audio or video using the file picker or drag and drop. Media stays on your device: this app has no upload service or account requirement.
 
 - **Browser:** use the hosted player immediately.
-- **Download:** save [WAVE-Player.html](https://secretobelisks.github.io/wave-player/downloads/WAVE-Player.html), then double-click the file to open the complete player offline in your browser. The interface, scripts, and textures are embedded in this single file.
+- **Download:** save [WAVE-Player.html](https://daronthedragon.github.io/wave-player/downloads/WAVE-Player.html), then double-click the file to open the complete player offline in your browser. The interface, scripts, and textures are embedded in this single file.
 - **Install:** use your browser's install-app option in Chrome or Edge. The browser installs a Progressive Web App (PWA) with its own launcher and window. Open the site online once so its interface can be cached, then use the installed app offline. Installation availability and menu wording vary by browser and platform.
 
 Imported media is saved locally in browser storage when available. Storage quotas, private browsing, file-URL storage restrictions, or clearing site data can remove saved tracks; keep your original files. The player is not a backup service.
