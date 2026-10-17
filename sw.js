@@ -1,10 +1,10 @@
 /* Bump this version whenever a new release changes the offline shell. */
-const CACHE_NAME = 'wave-shell-v8';
+const CACHE_NAME = 'wave-shell-v9';
 const BASE = new URL('./', self.location.href);
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
-  './src/main.js?v=1.3.0', './src/online-library.js?v=1.3.0', './src/online-links.js?v=1.3.0', './src/direct-audio.js?v=1.3.0', './src/library-storage.js?v=1.3.0', './src/styles.css?v=1.3.0', './src/audio-engine.js?v=1.3.0', './src/visualizer.js?v=1.3.0', './src/ps3-wave.js?v=1.3.0',
-  './src/transcoder.js?v=1.3.0', './src/transcoder-worker.js?v=1.3.0',
+  './src/main.js?v=1.4.0', './src/online-library.js?v=1.4.0', './src/online-links.js?v=1.4.0', './src/direct-audio.js?v=1.4.0', './src/library-storage.js?v=1.4.0', './src/styles.css?v=1.4.0', './src/audio-engine.js?v=1.4.0', './src/visualizer.js?v=1.4.0', './src/ps3-wave.js?v=1.4.0',
+  './src/transcoder.js?v=1.4.0', './src/transcoder-worker.js?v=1.4.0',
   './vendor/ffmpeg/ffmpeg-core.js', './vendor/ffmpeg/ffmpeg-core.wasm',
   './assets/wave-background.svg', './assets/cover-drift.svg',
   './assets/cover-nocturne.svg', './assets/cover-orbit.svg',
@@ -28,12 +28,12 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   const url = new URL(request.url);
   // Local user audio uses blob URLs / IndexedDB and never enters this cache.
-  if (request.method !== 'GET' || url.origin !== BASE.origin || !url.pathname.startsWith(BASE.pathname) || request.headers.has('range')) return;
+  if (request.method !== 'GET' || url.origin !== BASE.origin || !url.pathname.startsWith(BASE.pathname) || url.pathname.startsWith(new URL('./__native_audio/', BASE).pathname) || request.headers.has('range')) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     try {
       const response = await fetch(request, { cache: 'no-cache' });
-      if (response.ok && response.type === 'basic') await cache.put(request, response.clone());
+      if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store')) await cache.put(request, response.clone());
       return response;
     } catch {
       const cached = await cache.match(request);

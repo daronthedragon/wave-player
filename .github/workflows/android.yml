@@ -40,6 +40,8 @@ jobs:
           mkdir -p android/.tmp/path-tests
           javac -d android/.tmp/path-tests android/app/src/main/java/io/github/daronthedragon/waveplayer/BundlePath.java android/tests/BundlePathTest.java
           java -cp android/.tmp/path-tests io.github.daronthedragon.waveplayer.BundlePathTest
+          javac -d android/.tmp/path-tests android/app/src/main/java/io/github/daronthedragon/waveplayer/AudioLink.java android/tests/AudioLinkTest.java
+          java -cp android/.tmp/path-tests io.github.daronthedragon.waveplayer.AudioLinkTest
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'

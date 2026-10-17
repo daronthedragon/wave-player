@@ -1,5 +1,5 @@
-import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.3.0';
-import { audioServerURL, fetchAudioFile } from './direct-audio.js?v=1.3.0';
+import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.4.0';
+import { audioServerURL, fetchAudioFile, hasNativeAudio, fetchNativeAudioFile } from './direct-audio.js?v=1.4.0';
 
 export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSaved, getPlaylists, onChange, notify }) {
   const $ = selector => document.querySelector(selector);
@@ -13,6 +13,10 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
   try { server = localStorage.getItem('wave-audio-server') || ''; } catch {}
   if (!server && location.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(location.hostname)) server = 'http://127.0.0.1:4181';
   $('#audio-server').value = server;
+  const nativeAudio = hasNativeAudio();
+  $('.audio-connection').hidden = nativeAudio;
+  $('#native-audio-hint').hidden = !nativeAudio;
+  $('#browser-audio-hint').hidden = nativeAudio;
   const providerName = link => link.provider === 'youtube' ? 'YouTube' : 'SoundCloud';
   function persist() {
     try { localStorage.setItem('wave-online-links', JSON.stringify(links)); }
@@ -58,10 +62,13 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
     button.disabled = true;
     const timeout = setTimeout(() => controller.abort(new Error('Loading timed out. Try a shorter track.')), 210000);
     try {
-      if (!server) throw new Error('Connect an audio server below to load this track. The public site does not have one connected yet.');
-      const base = audioServerURL(server);
-      status.textContent = 'Loading audio… You can close this window to cancel. Longer tracks take more time.';
-      const file = await fetchAudioFile(link, base, controller.signal);
+      if (!nativeAudio && !server) throw new Error('Use the Android APK to retrieve this link on your phone, or import an audio file. The GitHub web app cannot retrieve provider audio directly.');
+      status.textContent = nativeAudio
+        ? 'Downloading on this phone… Keep WAVE open. Close this window to cancel.'
+        : 'Loading audio… You can close this window to cancel. Longer tracks take more time.';
+      const file = nativeAudio
+        ? await fetchNativeAudioFile(link, controller.signal)
+        : await fetchAudioFile(link, audioServerURL(server), controller.signal);
       if (controller.signal.aborted || current !== link) return;
       const destination = targetPlaylist;
       $('#online-player-dialog').close();
@@ -71,7 +78,7 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
       if (request !== controller) return;
       if (!$('#online-player-dialog').open) { if (!controller.signal.aborted) notify(error.message || 'Unable to save this audio.'); return; }
       status.textContent = error.name === 'TypeError'
-        ? 'Cannot reach the audio server. Check its address, connection, and allowed website settings.'
+        ? nativeAudio ? 'The phone could not finish downloading this track. Check your connection and try again.' : 'Cannot reach your audio companion. Check its address, connection, and allowed website settings.'
         : error.message || 'Unable to load this track.';
     } finally {
       clearTimeout(timeout);
@@ -126,7 +133,7 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
   return {
     add,
     entries: () => [
-      { id: 'add-online-link', title: 'Add a link', subtitle: 'YouTube / SoundCloud', description: 'Load a video’s audio or a track into WAVE. Audio server required.', icon: 'plus', action: () => add() },
+      { id: 'add-online-link', title: 'Add a link', subtitle: 'YouTube / SoundCloud', description: nativeAudio ? 'Download a track on this phone and keep it in your library. No server setup.' : 'Save a link. Use the Android APK to download its audio on your phone, or import a file.', icon: 'plus', action: () => add() },
       ...links.map(link => {
         const saved = findSaved(link.id);
         return { id: link.id, title: saved?.title || link.title,

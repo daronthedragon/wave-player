@@ -26,13 +26,13 @@ Phone browser, Home Screen app, and Android APK storage can be separate: import 
 
 ## YouTube and SoundCloud links
 
-Choose **+ Link** or **Online → Add a link** and paste an individual YouTube video or full SoundCloud track URL. WAVE retrieves the audio through a separately run audio server and imports it into **Music**. Playback uses WAVE’s own transport, playlists, and audio-reactive visualizers. There are no YouTube or SoundCloud embeds. Loaded files persist on this device when browser storage is available. Choose **Save to → Music library, an existing playlist, or Create a new playlist** when adding a link. Saved source links reopen their existing audio without contacting the server. In Music, use **△ Options → Add to playlist** for local files too.
+Choose **+ Link** or **Online → Add a link** and paste an individual YouTube video or full SoundCloud track URL. The Android APK retrieves supported public audio directly on the phone and imports it into **Music**, without a WAVE server or account. Playback uses WAVE’s own transport, playlists, and audio-reactive visualizers. There are no YouTube or SoundCloud embeds. Loaded files persist on this device when browser storage is available. Choose **Save to → Music library, an existing playlist, or Create a new playlist** when adding a link. Saved source links reopen their existing audio without contacting the server. In Music, use **△ Options → Add to playlist** for local files too.
 
-**The public GitHub Pages website has no audio server connected by default.** Run the [local audio companion](server/README.md), open the local test site, and load a link. For phone/public use, deploy the companion behind HTTPS and enter its origin under **Audio server connection**. Hosting is a separate requirement; the APK loads the same website and also needs this connection. No paid service is provisioned automatically.
+**Everything is distributed from daronthedragon’s GitHub; no shared audio backend is operated.** Install the Android APK for on-device link downloads. The GitHub Pages website and iPhone/Android Home Screen web app play imported audio/video and retain playlists, but cannot directly retrieve provider links under browser cross-origin restrictions. Installing the web app does not turn it into the native APK. Advanced desktop users can optionally run the [local audio companion](server/README.md) and use the local website; the web app retains an optional custom companion connection.
 
-Links are sent to the chosen server, which contacts the provider using [yt-dlp](https://github.com/yt-dlp/yt-dlp). Individual public tracks only; playlists, live streams, private/login-required, DRM-protected, or provider-blocked media are not supported. SoundCloud short links must first be opened and copied as full track URLs. Loading must finish before playback; this is a file import, not instant streaming. Use media you have permission to access and retain.
+In the Android APK, [yt-dlp](https://github.com/yt-dlp/yt-dlp) runs locally using the bundled Android runtime and contacts the provider directly. Keep WAVE in the foreground while downloading. Downloads are limited to 64 MiB and three minutes of processing. Provider changes can require an APK update. If you explicitly configure a companion in the web version, that companion receives the link instead. Individual public tracks only; playlists, live streams, private/login-required, DRM-protected, or provider-blocked media are not supported. SoundCloud short links must first be opened and copied as full track URLs. Loading must finish before playback; this is a file import, not instant streaming. Use media you have permission to access and retain.
 
-Up to 100 source bookmarks are stored locally. Removing a bookmark does not remove its imported audio; remove that separately from Music. Android sharing opens a review form before sending the URL to the audio server.
+Up to 100 source bookmarks are stored locally. Removing a bookmark does not remove its imported audio; remove that separately from Music. Android sharing opens a review form before the app retrieves the audio on the phone.
 
 ## Navigate and listen
 
@@ -76,7 +76,7 @@ The **Publish browser player** Action deploys `dist/` to GitHub Pages on pushes 
 
 ## Privacy and offline behavior
 
-The interface and artwork are cached by the service worker. Local files are never uploaded. Loading an online link sends its URL to your configured audio server, which temporarily caches the retrieved file and returns it to your device. Only connect to a server you trust. No provider iframe, analytics, or sign-in session is loaded in WAVE. The standalone HTML works offline for already imported media; retrieving new online audio requires a reachable HTTPS server and internet.
+The website interface and artwork are cached by the service worker; the Android APK includes its own offline bundle. Local files are never uploaded. The APK retrieves public provider audio directly on your device, then saves it into the same local library as imported files. Temporary downloads are removed after transfer or cancellation. No provider iframe, analytics, WAVE account, or shared audio backend is used. In the web version, an optional companion receives links only when you configure it. Saved audio works offline; new provider downloads require internet.
 
 ## Artwork and attribution
 
@@ -87,3 +87,5 @@ WAVE's SVG artwork directly inside `assets/` and its synthesized demo sounds are
 This is an independent project, not affiliated with or endorsed by Sony, PlayStation, or PSP. Those names belong to their respective owners. No commercial music, Sony fonts, or boot logos are bundled.
 
 Original WAVE source is MIT licensed; see [LICENSE](LICENSE). The bundled FFmpeg core is **GPL-2.0-or-later**, and the combined program code in the downloadable HTML is distributed under that license. This does not relicense the separately copyrighted PS3 image assets. Decoder licenses, exact file hashes, and source/build links are included in [vendor/ffmpeg/NOTICE.md](vendor/ffmpeg/NOTICE.md), with license copies also embedded in the standalone HTML.
+
+The Android APK also includes the GPL-3.0 youtubedl-android runtime. The combined Android program is distributed under GPL-3.0; original WAVE source retains its MIT notice. See [Android third-party notices](android/THIRD_PARTY_NOTICES.md) for pinned dependency versions, licenses, and source links.

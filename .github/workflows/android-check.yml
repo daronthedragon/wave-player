@@ -2,7 +2,7 @@ name: Android checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/android-native]
     paths:
       - 'android/**'
       - 'package.json'
@@ -27,6 +27,11 @@ on:
       - 'scripts/build.mjs'
       - '.github/workflows/android-check.yml'
   workflow_dispatch:
+    inputs:
+      live_audio:
+        description: 'Test actual public YouTube and SoundCloud downloads on the emulator'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -50,6 +55,8 @@ jobs:
           mkdir -p android/.tmp/path-tests
           javac -d android/.tmp/path-tests android/app/src/main/java/io/github/daronthedragon/waveplayer/BundlePath.java android/tests/BundlePathTest.java
           java -cp android/.tmp/path-tests io.github.daronthedragon.waveplayer.BundlePathTest
+          javac -d android/.tmp/path-tests android/app/src/main/java/io/github/daronthedragon/waveplayer/AudioLink.java android/tests/AudioLinkTest.java
+          java -cp android/.tmp/path-tests io.github.daronthedragon.waveplayer.AudioLinkTest
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'
@@ -67,6 +74,28 @@ jobs:
           name: WAVE-Android-Unsigned
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify on-device downloader runtime
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: gradle -p android --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.waveLiveAudio=${{ github.ref == 'refs/heads/codex/android-native' || inputs.live_audio == true }}
+      - name: Save Android runtime reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-runtime-reports
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
       - name: Save lint reports
         if: always()
         uses: actions/upload-artifact@v4

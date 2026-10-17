@@ -4,7 +4,7 @@
     <application android:label="WAVE Player" android:icon="@drawable/ic_wave"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:usesCleartextTraffic="false" android:allowBackup="false"
-        android:supportsRtl="true" android:hardwareAccelerated="true">
+        android:supportsRtl="true" android:hardwareAccelerated="true" android:extractNativeLibs="true">
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:windowSoftInputMode="adjustResize">

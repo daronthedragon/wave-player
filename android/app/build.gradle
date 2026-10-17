@@ -35,6 +35,8 @@ android {
         targetSdk 36
         versionCode versionParts[0] * 1000000 + versionParts[1] * 1000 + versionParts[2]
         versionName packageInfo.version
+        testInstrumentationRunner 'io.github.daronthedragon.waveplayer.WaveTestRunner'
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64' }
     }
     signingConfigs {
         if (releaseStore) {
@@ -57,7 +59,17 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     lint { abortOnError true }
+    packaging {
+        // Python and QuickJS are native executables, loaded from nativeLibraryDir.
+        jniLibs { useLegacyPackaging true }
+        resources { excludes += ['META-INF/DEPENDENCIES'] }
+    }
     sourceSets.main.assets.srcDir(generatedWebAssets)
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.14.0'
+    implementation 'io.github.junkfood02.youtubedl-android:library:0.18.1'
 }
 
 tasks.named('preBuild').configure { dependsOn 'bundleWebPlayer' }

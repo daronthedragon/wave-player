@@ -2,7 +2,7 @@
 
 This service obtains an actual audio file for a public YouTube video or SoundCloud track. WAVE imports that file into its existing music engine, so the normal timeline, volume, queue and visualizer work without a provider iframe.
 
-The website alone cannot do this: GitHub Pages only serves static files, and provider page URLs are not audio files. The companion must be running on the same computer, or an operator must provide an HTTPS backend. An Android APK or iPhone home-screen installation does not include a Python server.
+This optional companion is for advanced desktop/web users. GitHub Pages only serves static files, and provider page URLs are not audio files. The Android APK 1.4.0+ instead runs its bundled downloader directly on the phone and does not need this companion. The iPhone and browser Home Screen apps retain browser restrictions; they can play imported files and saved playlists without a companion.
 
 ## Run locally
 
@@ -54,7 +54,7 @@ Only single YouTube video URLs and full `soundcloud.com/artist/track` URLs are a
 
 ## Phones and a hosted backend
 
-`127.0.0.1` on a phone means the phone itself, not your PC. To use direct audio on phones, an operator needs an HTTPS backend that the phone can reach. This repository does **not** automatically publish or pay for one. Safari, Android and desktop browsers may also restrict a public website accessing a loopback service; using the local website avoids that cross-network requirement.
+`127.0.0.1` on a phone means the phone itself, not your PC. For on-device direct audio on Android, install the 1.4.0+ APK from GitHub. A web app using this optional companion needs an HTTPS endpoint that the browser can reach. This repository does **not** automatically publish or pay for one. Safari, Android and desktop browsers may also restrict a public website accessing a loopback service; using the local website avoids that cross-network requirement.
 
 An operator can place an HTTPS reverse proxy on the same machine as the companion, forwarding only `/health`, `/resolve` and `/audio/…` to loopback:
 

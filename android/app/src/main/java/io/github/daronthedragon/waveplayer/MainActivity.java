@@ -41,6 +41,7 @@ public final class MainActivity extends Activity {
     private View fullscreen;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
     private ValueCallback<Uri[]> fileCallback;
+    private NativeAudio nativeAudio;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override public void onCreate(Bundle state) {
@@ -72,16 +73,22 @@ public final class MainActivity extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setUserAgentString(settings.getUserAgentString() + " WAVEAndroid/1");
         CookieManager.getInstance().setAcceptThirdPartyCookies(player, true);
+        nativeAudio = new NativeAudio(this);
+        nativeAudio.attach(player);
         BundledPlayerAssets bundledAssets = new BundledPlayerAssets(getAssets());
         // Older APKs registered a service worker. Route its requests to the same
         // bundle until the web app unregisters it; never clear the user's data.
         ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                WebResourceResponse audio = nativeAudio.intercept(request);
+                if (audio != null) return audio;
                 return bundledAssets.intercept(request);
             }
         });
         player.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                WebResourceResponse audio = nativeAudio.intercept(request);
+                if (audio != null) return audio;
                 return bundledAssets.intercept(request);
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -185,7 +192,7 @@ public final class MainActivity extends Activity {
         panel.setPadding(40, 40, 40, 40);
         panel.setBackgroundColor(Color.rgb(15, 19, 25));
         TextView message = new TextView(this);
-        message.setText("WAVE couldn’t open its bundled player.\n\nRetry or install the latest APK over this app. Keep app data to preserve your library. Imported files and saved audio can play offline. Retrieving new YouTube or SoundCloud audio requires an internet connection and your configured HTTPS audio server.");
+        message.setText("WAVE couldn’t open its bundled player.\n\nRetry or install the latest APK over this app. Keep app data to preserve your library. Imported files and saved audio can play offline. New YouTube and SoundCloud imports run on this phone and require an internet connection.");
         message.setTextColor(Color.WHITE);
         message.setTextSize(18);
         panel.addView(message);
@@ -233,6 +240,7 @@ public final class MainActivity extends Activity {
     @Override protected void onPause() { player.onPause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (player != null) player.onResume(); }
     @Override protected void onDestroy() {
+        if (nativeAudio != null) nativeAudio.close();
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         hideFullscreen();
         root.removeView(player);

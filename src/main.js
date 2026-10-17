@@ -1,8 +1,8 @@
-import { requestLibraryProtection, libraryStorageStatus } from './library-storage.js?v=1.3.0';
-import { createOnlineLibrary } from './online-library.js?v=1.3.0';
-import { MediaTranscoder } from './transcoder.js?v=1.3.0';
-import { WaveVisualizer } from './visualizer.js?v=1.3.0';
-import { PlayerEngine, mediaKind } from './audio-engine.js?v=1.3.0';
+import { requestLibraryProtection, libraryStorageStatus } from './library-storage.js?v=1.4.0';
+import { createOnlineLibrary } from './online-library.js?v=1.4.0';
+import { MediaTranscoder } from './transcoder.js?v=1.4.0';
+import { WaveVisualizer } from './visualizer.js?v=1.4.0';
+import { PlayerEngine, mediaKind } from './audio-engine.js?v=1.4.0';
 
 const icons = {
  video:'M3 5h18v14H3zM3 9h18M7 5v4M12 5v4M17 5v4M9 12l6 3-6 3Z', refresh:'M20 7V2l-4 4M4 17v5l4-4M20 7a9 9 0 0 0-15-3M4 17a9 9 0 0 0 15 3',
@@ -94,8 +94,15 @@ function clock(){$('#clock').textContent=new Intl.DateTimeFormat(undefined,{hour
 if('serviceWorker'in navigator&&['https:','http:'].includes(location.protocol)){
   if(/WAVEAndroid\//.test(navigator.userAgent)){
     // Native assets keep the app available offline. Preserve all library databases.
-    navigator.serviceWorker.getRegistrations().then(registrations=>Promise.all(registrations.filter(r=>r.scope===new URL('./',location.href).href).map(r=>r.unregister()))).catch(()=>{});
-  }else navigator.serviceWorker.register('./sw.js?v=1.3.0').catch(()=>{});
+    try {
+      const controlled=Boolean(navigator.serviceWorker.controller);
+      const registrations=await navigator.serviceWorker.getRegistrations();
+      const removed=await Promise.all(registrations.filter(r=>r.scope===new URL('./',location.href).href).map(r=>r.unregister()));
+      // An older APK's worker still controls this document after unregistering.
+      // Reload before enabling imports so temporary native files never enter its cache.
+      if(controlled&&removed.some(Boolean)){location.reload();await new Promise(()=>{});}
+    } catch {}
+  }else navigator.serviceWorker.register('./sw.js?v=1.4.0').catch(()=>{});
 }
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('#install-now').hidden=false});
 window.addEventListener('appinstalled',()=>{installPrompt=null;$('#install-now').hidden=true;$('#install-status').textContent='WAVE is installed. Open it from your Home Screen.'});
