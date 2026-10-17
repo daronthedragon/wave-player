@@ -18,12 +18,25 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
   $('#native-audio-hint').hidden = !nativeAudio;
   $('#browser-audio-hint').hidden = nativeAudio;
   const providerName = link => link.provider === 'youtube' ? 'YouTube' : 'SoundCloud';
+  const canRetrieveAudio = () => nativeAudio || Boolean(server);
+  function updateCapabilities() {
+    const available = canRetrieveAudio();
+    $('#link-capability').textContent = available
+      ? 'Load audio from a YouTube video or SoundCloud track into WAVE’s music player.'
+      : 'YouTube and SoundCloud links are bookmarks in the website and Home Screen app. To play audio here, import an audio file. The Android APK can download supported links on the phone.';
+    $('#link-submit').textContent = available ? 'Load audio' : 'Save link';
+    $('#link-destination').hidden = !available;
+    $('#load-online-audio').hidden = !available;
+    $('#online-import-file').hidden = available;
+  }
+  updateCapabilities();
   function persist() {
     try { localStorage.setItem('wave-online-links', JSON.stringify(links)); }
     catch { notify('Link saved for this session. Device storage is unavailable.'); }
     onChange();
   }
   function add(prefill = '') {
+    updateCapabilities();
     $('#link-form').reset();
     $('#media-link').value = prefill;
     $('#link-error').textContent = '';
@@ -49,7 +62,9 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
     $('#online-source').href = link.url;
     $('#online-source').textContent = 'Open in ' + providerName(link);
     $('#online-player-dialog').showModal();
-    void loadAudio();
+    updateCapabilities();
+    if (canRetrieveAudio()) void loadAudio();
+    else $('#online-status').textContent = 'Link saved. This website and its Home Screen app cannot retrieve ' + providerName(link) + ' audio directly. Import an audio file to listen in WAVE, or open the original link.';
   }
   async function loadAudio() {
     request?.abort();
@@ -86,6 +101,10 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
     }
   }
   $('#load-online-audio').onclick = () => void loadAudio();
+  $('#online-import-file').onclick = () => {
+    $('#online-player-dialog').close();
+    $('#file-input').click();
+  };
   $('#link-playlist').onchange = () => {
     $('#link-new-playlist').hidden = $('#link-playlist').value !== '__new__';
     $('#link-new-playlist-name').required = $('#link-playlist').value === '__new__';
@@ -95,6 +114,7 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
     try {
       server = audioServerURL($('#audio-server').value.trim());
       try { localStorage.setItem('wave-audio-server', server); } catch {}
+      updateCapabilities();
       void loadAudio();
     } catch (error) { $('#online-status').textContent = error.message; }
   };
@@ -137,8 +157,8 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
       ...links.map(link => {
         const saved = findSaved(link.id);
         return { id: link.id, title: saved?.title || link.title,
-          subtitle: providerName(link) + (saved ? saved.storageState === 'persisted' ? ' · Saved on device' : ' · This session' : ''),
-          description: saved ? 'Play the saved audio immediately. No server needed.' : 'Load audio into Music with WAVE’s player and visualizer.',
+          subtitle: providerName(link) + (saved ? saved.storageState === 'persisted' ? ' · Saved on device' : ' · This session' : canRetrieveAudio() ? '' : ' · Saved link'),
+          description: saved ? 'Play the saved audio immediately. No server needed.' : canRetrieveAudio() ? 'Load audio into Music with WAVE’s player and visualizer.' : 'Saved bookmark. Open the original link, or import an audio file to listen in WAVE.',
           icon: 'music', action: () => open(link) };
       })
     ],

@@ -32,7 +32,7 @@ Choose **+ Link** or **Online → Add a link** and paste an individual YouTube v
 
 In the Android APK, [yt-dlp](https://github.com/yt-dlp/yt-dlp) runs locally using the bundled Android runtime and contacts the provider directly. Keep WAVE in the foreground while downloading. Downloads are limited to 64 MiB and three minutes of processing. Provider changes can require an APK update. If you explicitly configure a companion in the web version, that companion receives the link instead. Individual public tracks only; playlists, live streams, private/login-required, DRM-protected, or provider-blocked media are not supported. SoundCloud short links must first be opened and copied as full track URLs. Loading must finish before playback; this is a file import, not instant streaming. Use media you have permission to access and retain.
 
-Up to 100 source bookmarks are stored locally. Removing a bookmark does not remove its imported audio; remove that separately from Music. Android sharing opens a review form before the app retrieves the audio on the phone.
+Up to 100 source bookmarks are stored locally. On the website and Home Screen app without a companion, **+ Link → Save link** saves a bookmark and offers **Open in YouTube / SoundCloud** or **Import audio file**; it does not claim to download the track. The audio download and playlist destination controls appear when the Android downloader or a configured companion is available. Removing a bookmark does not remove its imported audio; remove that separately from Music. Android sharing opens a review form before the app retrieves the audio on the phone.
 
 ## Navigate and listen
 

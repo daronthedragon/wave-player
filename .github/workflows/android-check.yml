@@ -85,8 +85,12 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
+          cores: 2
+          ram-size: 2048M
+          heap-size: 256M
+          emulator-options: -no-window -gpu swiftshader_indirect -feature -Vulkan -memory 2048 -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
           disable-animations: true
-          script: gradle -p android --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.waveLiveAudio=${{ github.ref == 'refs/heads/codex/android-native' || inputs.live_audio == true }}
+          script: bash android/run-device-checks.sh ${{ github.ref == 'refs/heads/codex/android-native' || inputs.live_audio == true }}
       - name: Save Android runtime reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -95,6 +99,7 @@ jobs:
           path: |
             android/app/build/reports/androidTests/
             android/app/build/outputs/androidTest-results/
+            android/.tmp/device-diagnostics/
           if-no-files-found: ignore
       - name: Save lint reports
         if: always()

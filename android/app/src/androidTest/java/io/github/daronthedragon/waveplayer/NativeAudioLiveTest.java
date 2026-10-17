@@ -46,6 +46,10 @@ public final class NativeAudioLiveTest {
                 assertTrue("Native listener did not initialize", SystemClock.elapsedRealtime() < readyDeadline);
                 SystemClock.sleep(100);
             }
+            // This test covers media import and decoding, not visual rendering.
+            // The CI emulator uses a software GPU; stop the decorative canvas
+            // animation so it cannot starve extraction or crash that GPU backend.
+            evaluate(view, "window.requestAnimationFrame=() => 0; document.querySelectorAll('canvas').forEach(c => c.style.display='none'); true;");
             evaluate(view, "window.__waveLiveResult={pending:true}; import('https://daronthedragon.github.io/wave-player/src/direct-audio.js').then(m => m.fetchNativeAudioFile({url:"
                     + JSONObject.quote(url) + ",title:'Runtime test'})).then(f => new Promise((resolve,reject) => {"
                     + "const audio=new Audio(), objectUrl=URL.createObjectURL(f); let settled=false;"
