@@ -46,7 +46,7 @@ public final class NativeAudioLiveTest {
                 assertTrue("Native listener did not initialize", SystemClock.elapsedRealtime() < readyDeadline);
                 SystemClock.sleep(100);
             }
-            evaluate(view, "window.__waveLiveResult={pending:true}; import('./src/direct-audio.js').then(m => m.fetchNativeAudioFile({url:"
+            evaluate(view, "window.__waveLiveResult={pending:true}; import('https://daronthedragon.github.io/wave-player/src/direct-audio.js').then(m => m.fetchNativeAudioFile({url:"
                     + JSONObject.quote(url) + ",title:'Runtime test'})).then(f => new Promise((resolve,reject) => {"
                     + "const audio=new Audio(), objectUrl=URL.createObjectURL(f); let settled=false;"
                     + "const finish=(error) => { if(settled)return; settled=true; clearTimeout(timeout);"
