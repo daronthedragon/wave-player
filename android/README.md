@@ -20,14 +20,24 @@ Open this directory in Android Studio to run on a device. The app version comes 
 
 ## Release signing
 
-The `Android APK` workflow runs on version tags and can also build an existing version tag manually. It signs, verifies, and attaches `WAVE-Player.apk` and its SHA-256 file to the GitHub release. Configure these encrypted repository secrets:
+The `Android APK` workflow runs on version tags and can also build an existing version tag manually. Without hosted signing secrets it builds and lints an unsigned APK and saves it as the `WAVE-Android-Unsigned` Actions artifact. That unsigned file is never published as an installable download. The `Android checks` workflow also produces this unsigned artifact on main pushes.
+
+To keep the signing key entirely on your computer, download that artifact, then use the local signing helper on Windows:
+
+```powershell
+./android/sign-apk.ps1 -InputApk ./app-release-unsigned.apk
+```
+
+The helper expects private metadata at `.tmp/android-signing/signing.json` with `keystorePath`, `keyAlias`, `storePassword`, and `keyPassword`. It uses the official Android build tools from `.tmp/android-tooling/android-15` by default; pass `-BuildTools` to use your SDK's `build-tools/35.0.0` directory. It aligns the APK, signs with passwords passed through temporary environment variables, verifies the signature and alignment, and writes `.tmp/android-release/WAVE-Player.apk` plus its SHA-256 file. Upload only those two output files to the GitHub release. Keep the key and metadata private.
+
+Optionally, to sign and publish entirely inside Actions, configure these encrypted repository secrets. When all are configured, the release workflow signs, verifies, and attaches `WAVE-Player.apk` and its SHA-256 file to the GitHub release:
 
 - `WAVE_ANDROID_KEYSTORE_BASE64`: base64 of the private JKS/PKCS12 signing keystore
 - `WAVE_ANDROID_KEYSTORE_PASSWORD`: keystore password
 - `WAVE_ANDROID_KEY_ALIAS`: signing alias
 - `WAVE_ANDROID_KEY_PASSWORD`: key password
 
-For a local release build, expose those passwords as `WAVE_KEYSTORE_PASSWORD`, `WAVE_KEY_ALIAS`, `WAVE_KEY_PASSWORD` and the absolute keystore path as `WAVE_KEYSTORE_PATH`, then run `gradle lintRelease assembleRelease`. Without a keystore the local release output is unsigned; the release workflow refuses to publish without the signing secret.
+For a local release build, expose those passwords as `WAVE_KEYSTORE_PASSWORD`, `WAVE_KEY_ALIAS`, `WAVE_KEY_PASSWORD` and the absolute keystore path as `WAVE_KEYSTORE_PATH`, then run `gradle lintRelease assembleRelease`. Without a keystore the local release output is unsigned; the release workflow skips publication without the signing secret.
 
 Keep the signing key and passwords backed up privately: every future update must use the same key. Never commit them. Debug APKs use a different key and cannot update a release installation in place.
 

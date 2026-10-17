@@ -214,6 +214,8 @@ public final class MainActivity extends Activity {
         else if (player.canGoBack()) player.goBack();
         else finish();
     }
+    // API 33+ uses the registered OnBackInvokedDispatcher callback; this is the API 26–32 fallback.
+    @SuppressLint("GestureBackNavigation")
     @Override public void onBackPressed() { handleBack(); }
     @Override protected void onPause() { player.onPause(); super.onPause(); }
     @Override protected void onResume() { super.onResume(); if (player != null) player.onResume(); }

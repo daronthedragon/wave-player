@@ -34,9 +34,15 @@ jobs:
           gradle-version: '8.13'
       - name: Install Android SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
-      - name: Compile and lint debug app
+      - name: Compile, lint, and build unsigned release
         working-directory: android
-        run: gradle --no-daemon lintDebug assembleDebug
+        run: gradle --no-daemon lintDebug assembleDebug assembleRelease
+      - name: Save unsigned release for local signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: WAVE-Android-Unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
       - name: Save lint reports
         if: always()
         uses: actions/upload-artifact@v4

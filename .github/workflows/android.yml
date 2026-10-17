@@ -41,32 +41,48 @@ jobs:
       - name: Install Android SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - name: Restore private release signing key
+        id: signing
         env:
           KEYSTORE: ${{ secrets.WAVE_ANDROID_KEYSTORE_BASE64 }}
         run: |
-          test -n "$KEYSTORE" || { echo 'Missing WAVE_ANDROID_KEYSTORE_BASE64 repository secret.'; exit 1; }
+          if [ -z "$KEYSTORE" ]; then
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo 'No hosted signing key configured. Building unsigned APK for local signing only.'
+            exit 0
+          fi
           printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/wave-release.jks"
           chmod 600 "$RUNNER_TEMP/wave-release.jks"
-      - name: Build and lint signed APK
+          echo 'available=true' >> "$GITHUB_OUTPUT"
+      - name: Build and lint release APK
         working-directory: android
         env:
-          WAVE_KEYSTORE_PATH: ${{ runner.temp }}/wave-release.jks
+          WAVE_KEYSTORE_PATH: ${{ steps.signing.outputs.available == 'true' && format('{0}/wave-release.jks', runner.temp) || '' }}
           WAVE_KEYSTORE_PASSWORD: ${{ secrets.WAVE_ANDROID_KEYSTORE_PASSWORD }}
           WAVE_KEY_ALIAS: ${{ secrets.WAVE_ANDROID_KEY_ALIAS }}
           WAVE_KEY_PASSWORD: ${{ secrets.WAVE_ANDROID_KEY_PASSWORD }}
         run: gradle --no-daemon lintRelease assembleRelease
       - name: Verify signature and name download
+        if: steps.signing.outputs.available == 'true'
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
           cp android/app/build/outputs/apk/release/app-release.apk WAVE-Player.apk
           sha256sum WAVE-Player.apk > WAVE-Player.apk.sha256
       - uses: actions/upload-artifact@v4
+        if: steps.signing.outputs.available == 'true'
         with:
           name: WAVE-Player-Android
           path: |
             WAVE-Player.apk
             WAVE-Player.apk.sha256
+      - name: Save unsigned APK for local signing
+        if: steps.signing.outputs.available != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: WAVE-Android-Unsigned
+          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
       - name: Attach APK to release
+        if: steps.signing.outputs.available == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
