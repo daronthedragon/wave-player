@@ -82,7 +82,10 @@ jobs:
       - name: Verify on-device downloader runtime
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          # Android 15's emulator image disconnected during native process
+          # startup on this runner. Android 14 keeps a modern WebView while
+          # independently verifying the APK's API 26+ native extraction path.
+          api-level: 34
           target: google_apis
           arch: x86_64
           cores: 2
