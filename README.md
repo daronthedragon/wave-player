@@ -1,95 +1,112 @@
-# WAVE Player
+<div align="center">
 
-A browser and downloadable offline audio/video player with a PS3-style XMB interface: horizontal categories, a vertical selection list, and flowing light ribbons based on an open-source recreation of the console's wave renderer. Built with plain HTML, CSS, and JavaScript, with a bundled FFmpeg WebAssembly converter. No package installation or Electron is required.
+![WAVE — Your music. A different atmosphere.](docs/wave-banner.svg)
 
-## Play, download, and install
+### Your library. Your device. Your atmosphere.
 
-Open [WAVE Player](https://daronthedragon.github.io/wave-player/) in a modern browser. Import your own audio or video using the file picker or drag and drop. Media stays on your device: this app has no upload service or account requirement.
+A console-inspired audio & video player with flowing light, an XMB-style menu,<br>
+persistent playlists, and a place for the files you already love.
 
-- **Browser:** use the hosted player immediately.
-- **Download:** save [WAVE-Player.html](https://daronthedragon.github.io/wave-player/downloads/WAVE-Player.html), then double-click the file to open the complete player offline in your browser. The interface, scripts, and textures are embedded in this single file.
-- **Install:** use your browser's install-app option in Chrome or Edge. The browser installs a Progressive Web App (PWA) with its own launcher and window. Open the site online once so its interface can be cached, then use the installed app offline. Installation availability and menu wording vary by browser and platform.
+[![Open player](https://img.shields.io/badge/OPEN_PLAYER-Website-83d9ed?style=for-the-badge&labelColor=17232f)](https://daronthedragon.github.io/wave-player/)
+[![Download Android](https://img.shields.io/badge/DOWNLOAD-Android_APK-c2c6ff?style=for-the-badge&labelColor=17232f)](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.apk)
+[![Download offline player](https://img.shields.io/badge/DOWNLOAD-Offline_HTML-e1c7a4?style=for-the-badge&labelColor=17232f)](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.html)
 
-Imported media is saved locally in browser storage when available. Storage quotas, private browsing, file-URL storage restrictions, or clearing site data can remove saved tracks; keep your original files. The player is not a backup service.
+**No WAVE account · Local media stays local · No Electron**
 
-## iPhone and Android
+[Features](#made-for-listening) · [Install](#pick-your-player) · [Online links](#youtube--soundcloud) · [Complete guide](docs/GUIDE.md) · [Releases](https://github.com/daronthedragon/wave-player/releases)
 
-Tap **Install** in WAVE for device-specific instructions.
+</div>
 
-- **iPhone / iPad:** open the live website in Safari, choose **Share → Add to Home Screen**, keep **Open as Web App** enabled if shown, and tap **Add**. This installs the web app; it is not an IPA or App Store download. See [Apple's installation guide](https://support.apple.com/guide/iphone/iphea86e5236/ios).
-- **Android web app:** in Chrome, choose **⋮ → Add to Home screen → Install**, or use WAVE's install button when available. See [Chrome's installation guide](https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid&hl=en).
-- **Android APK:** download [WAVE-Player.apk](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.apk), open it, and allow installation from your browser when Android asks. The APK includes the player, textures, and decoder, so it opens offline, including on first launch. Its native file picker imports files into the app’s private WebView library. Updating the APK preserves this library because the app ID and storage origin stay the same. Keep Android System WebView updated. Install future APK updates over this app to retain its library.
+---
 
-Settings show how many tracks are saved and offer **Protect saved library**, which asks supported browsers to reduce automatic storage eviction. Track options distinguish **Saved on this device** from **This session only** if a write failed. Playlists retain stable track IDs between launches. Clearing app/site data or uninstalling removes the library; this is device storage, not cloud sync.
+<a href="https://daronthedragon.github.io/wave-player/">
+  <img src="docs/player-preview.png" alt="WAVE's live player: a dark XMB-style music library with a flowing silver wave, category icons, and playback controls" width="100%">
+</a>
 
-Phone browser, Home Screen app, and Android APK storage can be separate: import your files in the version you intend to use. No account or cloud library sync is provided.
+## Made for listening
 
-## YouTube and SoundCloud links
+**An interface with a little atmosphere.** Move across categories, browse a vertical library, and let luminous waves follow your music. WAVE takes inspiration from the PS3 home screen while keeping your own media at the center.
 
-Choose **+ Link** or **Online → Add a link** and paste an individual YouTube video or full SoundCloud track URL. The Android APK retrieves supported public audio directly on the phone and imports it into **Music**, without a WAVE server or account. Playback uses WAVE’s own transport, playlists, and audio-reactive visualizers. There are no YouTube or SoundCloud embeds. Loaded files persist on this device when browser storage is available. Choose **Save to → Music library, an existing playlist, or Create a new playlist** when adding a link. Saved source links reopen their existing audio without contacting the server. In Music, use **△ Options → Add to playlist** for local files too.
+| Listen & watch | Make it yours |
+| :--- | :--- |
+| **Audio + video** — import files or drop them into the player. | **Three visualizers** — Flow, Spectrum, and Orbit respond to your music. |
+| **A library that stays** — save media and playlists on your device. | **XMB-style navigation** — keyboard, mouse, and touch controls. |
+| **Local conversion** — bundled FFmpeg handles many formats your browser cannot decode. | **Color atmospheres** — change the mood or enable reduced motion. |
+| **Offline playback** — listen to saved files without a connection. | **Choose your home** — browser, Home Screen web app, Android APK, or offline HTML. |
 
-**Everything is distributed from daronthedragon’s GitHub; no shared audio backend is operated.** Install the Android APK for on-device link downloads. The GitHub Pages website and iPhone/Android Home Screen web app play imported audio/video and retain playlists, but cannot directly retrieve provider links under browser cross-origin restrictions. Installing the web app does not turn it into the native APK. Advanced desktop users can optionally run the [local audio companion](server/README.md) and use the local website; the web app retains an optional custom companion connection.
+## Pick your player
 
-In the Android APK, [yt-dlp](https://github.com/yt-dlp/yt-dlp) runs locally using the bundled Android runtime and contacts the provider directly. Keep WAVE in the foreground while downloading. Downloads are limited to 64 MiB and three minutes of processing. Provider changes can require an APK update. If you explicitly configure a companion in the web version, that companion receives the link instead. Individual public tracks only; playlists, live streams, private/login-required, DRM-protected, or provider-blocked media are not supported. SoundCloud short links must first be opened and copied as full track URLs. Loading must finish before playback; this is a file import, not instant streaming. Use media you have permission to access and retain.
+| | Get started | What to expect |
+| :--- | :--- | :--- |
+| **Web** | [Open WAVE](https://daronthedragon.github.io/wave-player/) | Import audio/video and save playlists in this browser. |
+| **iPhone / iPad** | Open the website in Safari → **Share → Add to Home Screen** | An installable web app. Open online once to cache the player. |
+| **Android APK** | [Download the APK](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.apk) | Bundled offline player, native file picker, and on-device provider audio importer. |
+| **Android web app** | Open the website in Chrome → **Install / Add to Home screen** | The web version in its own launcher; capabilities differ from the APK. |
+| **Desktop / portable** | [Download the HTML](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.html) | One approximately 43 MB file. Double-click to open in your browser. |
 
-**Extractor update (1.4.1):** Android now bundles yt-dlp 2026.08.19 and replaces the old cached extractor when updating an existing installation. The payload is checked against a pinned SHA-256; no executable update is fetched while using the app. The optional desktop companion also requires this newer version.
+**Updating Android? Install the new APK over the existing app to retain your library.** Clearing site/app data or uninstalling can delete saved media. Keep your original files; libraries are local and do not sync between devices or installations. [Installation & storage details →](docs/GUIDE.md#iphone-and-android)
 
-**YouTube verification limits:** YouTube may reject a connection with “Sign in to confirm you’re not a bot.” WAVE cannot retrieve audio when this happens and does not import account cookies or bypass verification. Android emulator checks verified a real SoundCloud download through WAVE’s native bridge and audio decoder. The YouTube check was blocked by this verification response on GitHub’s runner; YouTube playback on a physical phone has not been verified. A separate local desktop YouTube download and playback test passed. These checks do not establish that every public link will work on every connection.
+## YouTube & SoundCloud
 
-Up to 100 source bookmarks are stored locally. On the website and Home Screen app without a companion, **+ Link → Save link** saves a bookmark and offers **Open in YouTube / SoundCloud** or **Import audio file**; it does not claim to download the track. The audio download and playlist destination controls appear when the Android downloader or a configured companion is available. Removing a bookmark does not remove its imported audio; remove that separately from Music. Android sharing opens a review form before the app retrieves the audio on the phone.
+Paste a source URL with **+ Link**. What happens next depends on where WAVE runs:
 
-## Navigate and listen
+| Capability | GitHub website / Home Screen app | Android APK |
+| :--- | :--- | :--- |
+| Save source links | Yes | Yes |
+| Play imported files & keep playlists | Yes | Yes |
+| Retrieve provider audio without a WAVE server | **Unavailable** | On-device importer for supported public tracks |
+| SoundCloud verification | Link bookmarks; import an audio file to play in WAVE | Real audio import and decoding passed emulator checks |
+| YouTube verification | Link bookmarks; import an audio file to play in WAVE | Implemented, but the live emulator check hit YouTube verification; physical-phone playback remains unverified |
 
-Use **Left / Right** to move between categories and **Up / Down** to select an item. Press **Enter** to open or play the selected item; mouse and touch controls are also available. Press **Space** to play or pause, **Shift + Left / Right** to seek five seconds, and **/** to search your music.
+> **The website and iPhone Home Screen app cannot extract YouTube or SoundCloud audio directly without a server or provider embeds.** WAVE currently uses neither a shared audio backend nor provider embeds. Saving a link on these versions creates a bookmark, not a playable audio download.
 
-Open the visualizer category for three full-screen views: **Flow** layers luminous ribbons, **Spectrum** shows frequency bars, and **Orbit** surrounds the music with moving light. The effects respond to the playing audio when the browser permits audio analysis. Press **Escape** to return to the menu. Settings include color atmospheres and reduced motion.
+The Android APK uses a bundled **yt-dlp** runtime on your device. Supported downloads become local Music files and can be added to playlists. YouTube can return **“Sign in to confirm you’re not a bot”**, which prevents import; WAVE does not bypass that verification. Provider changes can also require an APK update. A separate local desktop YouTube download/playback check passed, but does not establish phone or static-website support.
 
-## Audio, video, and local conversion
+Downloads support individual public tracks, with a **64 MiB** limit and **three-minute** processing timeout. They must finish before playback. No private/login-required media, live streams, provider-blocked content, or whole provider playlists. Use media you have permission to access and retain.
 
-Play local audio and video through the browser's native decoder first. Common audio formats include MP3, WAV, FLAC, Ogg/Vorbis, Opus, AAC, and M4A; common video containers include MP4, WebM, and MOV. Actual support depends on the codecs inside each file and your browser.
+[Full link support & known limitations →](docs/GUIDE.md#youtube-and-soundcloud-links) · [Optional local desktop companion →](server/README.md)
 
-For files the browser cannot play, choose local conversion. The bundled single-thread **FFmpeg WebAssembly** converter handles many additional formats, including common AVI and MKV combinations, and produces H.264/AAC MP4 video or stereo PCM WAV audio. Conversion never uploads your media. It runs in a cancellable worker with progress feedback; no cross-origin isolation or special hosting headers are needed.
+## Settle in
 
-This is broad format support, not a guarantee of every format. DRM/encryption, damaged files, unsupported codecs, browser memory limits, and some unusual streams can prevent playback or conversion. Local conversion accepts inputs up to **256 MB**, allows up to ten minutes of processing (twelve minutes total), and can be much slower than a native desktop converter. Large converted outputs can also exceed browser memory or storage limits. Keep your originals.
+1. **Add your media** with the file picker or drag and drop.
+2. **Build a playlist** from a track’s **△ Options → Add to playlist** menu.
+3. **Open a visualizer** and choose Flow, Spectrum, or Orbit.
 
-The standalone HTML includes the complete converter and is approximately **43 MB**. The hosted app caches the approximately 32 MB decoder for offline use after its service worker finishes installing; wait for that first online cache download before relying on offline conversion.
+| Control | Action |
+| :--- | :--- |
+| **← / →** · **↑ / ↓** | Change category · Select an item |
+| **Enter** · **Space** | Open or play · Play / pause |
+| **Shift + ← / →** | Seek five seconds |
+| **/** · **Escape** | Search music · Return to the menu |
 
-## Run locally
+Common formats include MP3, WAV, FLAC, Ogg, Opus, AAC/M4A, MP4, WebM, and MOV. Actual playback depends on the file’s codecs and your browser. The local converter supports many additional formats, with a **256 MB input limit**; universal format support is not guaranteed. [Formats & conversion →](docs/GUIDE.md#audio-video-and-local-conversion)
 
-Install Node.js 22.12 or newer, download or clone this repository, then run:
+## Build your own
+
+Plain HTML, CSS, and JavaScript. **Node.js 22.12+**, no dependency installation required.
 
 ```sh
+git clone https://github.com/daronthedragon/wave-player.git
+cd wave-player
 npm run build
 npm run dev
 ```
 
-Open <http://127.0.0.1:4173>. No dependency installation is needed. The built standalone HTML works when opened directly; the development source uses JavaScript modules and needs the local server.
+Open **http://127.0.0.1:4173**. Run `npm test` for functional tests; `npm run build` produces the website and standalone HTML in `dist/`.
 
-```sh
-npm test       # Functional unit tests
-npm run build # Build the site and standalone HTML into dist/
-```
+[Complete guide](docs/GUIDE.md) · [Android build & signing](android/README.md) · [Release & deployment notes](docs/GUIDE.md#releases-and-deployment)
 
-The development server binds only to `127.0.0.1`, serves files from this project, blocks hidden files and tooling directories, and rejects paths outside the project.
+## Credits & licenses
 
-## Releases and deployment
+WAVE is an independent project, unaffiliated with Sony or PlayStation. Its wave renderer adapts [linkev’s PlayStation-3-XMB recreation](https://github.com/linkev/PlayStation-3-XMB). Original WAVE source is **MIT**; combined downloadable HTML program code is **GPL-2.0-or-later**, and the combined Android program is **GPL-3.0**. Separately copyrighted PS3 image assets are excluded from those code licenses.
 
-The repository's **Releases** page provides `WAVE-Player.html` and `Wave-Player-Web.zip`, the complete static website. The **Build downloadable player** Action produces these artifacts manually or when a version tag such as `v1.0.0` is pushed. Tagged builds attach the files to a draft GitHub Release. Attach the locally signed Android APK and checksum, verify the downloads, then publish the draft.
+[WAVE license](LICENSE) · [Renderer notice](vendor/ps3-xmb/NOTICE.md) · [PS3 artwork notice](assets/ps3/NOTICE.md) · [FFmpeg notice](vendor/ffmpeg/NOTICE.md) · [Android notices](android/THIRD_PARTY_NOTICES.md) · [Full attribution](docs/GUIDE.md#artwork-and-attribution)
 
-The **Publish browser player** Action deploys `dist/` to GitHub Pages on pushes to `main` or manual dispatch. In repository settings, set Pages source to **GitHub Actions**. Any HTTPS static host can serve `dist/`.
+---
 
-## Privacy and offline behavior
+<div align="center">
 
-The website interface and artwork are cached by the service worker; the Android APK includes its own offline bundle. Local files are never uploaded. The APK retrieves public provider audio directly on your device, then saves it into the same local library as imported files. Temporary downloads are removed after transfer or cancellation. No provider iframe, analytics, WAVE account, or shared audio backend is used. In the web version, an optional companion receives links only when you configure it. Saved audio works offline; new provider downloads require internet.
+**WAVE** · Built for your own collection.<br>
+[daronthedragon / wave-player](https://github.com/daronthedragon/wave-player)
 
-## Artwork and attribution
-
-The wave rendering uses [linkev's PlayStation-3-XMB recreation](https://github.com/linkev/PlayStation-3-XMB), copyright 2025 Mart, under the MIT license, adapted for WAVE's lifecycle, themes, reduced motion, and audio response. It uses the upstream reconstruction's synthetic displacement descriptors and fitted gradient presets, not extracted Sony firmware textures. Upstream sources, license, and technical provenance are preserved in [vendor/ps3-xmb](vendor/ps3-xmb/NOTICE.md); attribution and the license are also embedded in the standalone download.
-
-WAVE's SVG artwork directly inside `assets/` and its synthesized demo sounds are original. The separate PNG icons in `assets/ps3/` are firmware-derived PS3 interface textures from the public xmb-web reference project. Sony or their respective owners retain the rights to these images; they are excluded from WAVE's MIT license, the renderer's MIT license, and FFmpeg's GPL license. Inclusion does not grant ownership or a general redistribution license. Their provenance and rights notice are preserved in [assets/ps3/NOTICE.md](assets/ps3/NOTICE.md) and embedded in the standalone download.
-
-This is an independent project, not affiliated with or endorsed by Sony, PlayStation, or PSP. Those names belong to their respective owners. No commercial music, Sony fonts, or boot logos are bundled.
-
-Original WAVE source is MIT licensed; see [LICENSE](LICENSE). The bundled FFmpeg core is **GPL-2.0-or-later**, and the combined program code in the downloadable HTML is distributed under that license. This does not relicense the separately copyrighted PS3 image assets. Decoder licenses, exact file hashes, and source/build links are included in [vendor/ffmpeg/NOTICE.md](vendor/ffmpeg/NOTICE.md), with license copies also embedded in the standalone HTML.
-
-The Android APK also includes the GPL-3.0 youtubedl-android runtime. The combined Android program is distributed under GPL-3.0; original WAVE source retains its MIT notice. See [Android third-party notices](android/THIRD_PARTY_NOTICES.md) for pinned dependency versions, licenses, and source links.
+</div>
