@@ -1,7 +1,7 @@
 package io.github.daronthedragon.waveplayer;
 
 import android.content.Context;
-import android.test.InstrumentationTestCase;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.yausername.youtubedl_android.YoutubeDL;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 import com.yausername.youtubedl_android.YoutubeDLResponse;
@@ -9,10 +9,17 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /** Offline device/emulator smoke: both packaged native runtimes must actually execute. */
-@SuppressWarnings("deprecation")
-public final class NativeAudioRuntimeTest extends InstrumentationTestCase {
+@RunWith(AndroidJUnit4.class)
+public final class NativeAudioRuntimeTest {
+    @Test
     public void testPackagedPythonAndExtractorLaunch() throws Exception {
         Context context = getInstrumentation().getTargetContext();
         YoutubeDL.getInstance().init(context);
@@ -23,6 +30,7 @@ public final class NativeAudioRuntimeTest extends InstrumentationTestCase {
         assertTrue("Bundled yt-dlp must report its version", response.getOut().trim().matches("[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}.*"));
     }
 
+    @Test
     public void testPackagedQuickJsLaunch() throws Exception {
         Context context = getInstrumentation().getTargetContext();
         YoutubeDL.getInstance().init(context);

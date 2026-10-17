@@ -67,7 +67,7 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - name: Compile, lint, and build unsigned release
         working-directory: android
-        run: gradle --no-daemon lintDebug assembleDebug assembleRelease
+        run: gradle --no-daemon lintDebug assembleDebug assembleRelease assembleDebugAndroidTest
       - name: Save unsigned release for local signing
         uses: actions/upload-artifact@v4
         with:

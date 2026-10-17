@@ -70,6 +70,8 @@ android {
 dependencies {
     implementation 'androidx.webkit:webkit:1.14.0'
     implementation 'io.github.junkfood02.youtubedl-android:library:0.18.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
 
 tasks.named('preBuild').configure { dependsOn 'bundleWebPlayer' }

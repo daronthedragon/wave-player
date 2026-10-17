@@ -3,7 +3,7 @@ package io.github.daronthedragon.waveplayer;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.SystemClock;
-import android.test.InstrumentationTestCase;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
@@ -11,15 +11,26 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
-/** Optional real-provider check: bundled JS -> scoped native listener -> provider -> File. */
-@SuppressWarnings("deprecation")
-public final class NativeAudioLiveTest extends InstrumentationTestCase {
+/** Optional real-provider check: bundled JS -> native listener -> provider -> playable media File. */
+@RunWith(AndroidJUnit4.class)
+public final class NativeAudioLiveTest {
+    @Test
     public void testSoundCloudThroughBundledPlayer() throws Exception {
-        if (WaveTestRunner.liveAudio) importTrack("https://soundcloud.com/forss/flickermood");
+        assumeTrue("Enable waveLiveAudio to run provider network checks", WaveTestRunner.liveAudio);
+        importTrack("https://soundcloud.com/forss/flickermood");
     }
+    @Test
     public void testYouTubeThroughBundledPlayer() throws Exception {
-        if (WaveTestRunner.liveAudio) importTrack("https://www.youtube.com/watch?v=M7lc1UVf-VE");
+        assumeTrue("Enable waveLiveAudio to run provider network checks", WaveTestRunner.liveAudio);
+        importTrack("https://www.youtube.com/watch?v=M7lc1UVf-VE");
     }
     private void importTrack(String url) throws Exception {
         Intent launch = new Intent(getInstrumentation().getTargetContext(), MainActivity.class);
@@ -36,7 +47,18 @@ public final class NativeAudioLiveTest extends InstrumentationTestCase {
                 SystemClock.sleep(100);
             }
             evaluate(view, "window.__waveLiveResult={pending:true}; import('./src/direct-audio.js').then(m => m.fetchNativeAudioFile({url:"
-                    + JSONObject.quote(url) + ",title:'Runtime test'})).then(f => { window.__waveLiveResult={size:f.size,type:f.type,name:f.name}; })"
+                    + JSONObject.quote(url) + ",title:'Runtime test'})).then(f => new Promise((resolve,reject) => {"
+                    + "const audio=new Audio(), objectUrl=URL.createObjectURL(f); let settled=false;"
+                    + "const finish=(error) => { if(settled)return; settled=true; clearTimeout(timeout);"
+                    + "const duration=audio.duration; audio.onloadedmetadata=null; audio.onerror=null;"
+                    + "audio.removeAttribute('src'); audio.load(); URL.revokeObjectURL(objectUrl);"
+                    + "if(error)reject(error); else if(!Number.isFinite(duration)||duration<=0)reject(new Error('Audio metadata has no finite positive duration'));"
+                    + "else resolve({size:f.size,type:f.type,name:f.name,duration}); };"
+                    + "const timeout=setTimeout(() => finish(new Error('Audio metadata did not load within 15 seconds')),15000);"
+                    + "audio.preload='metadata'; audio.onloadedmetadata=() => finish();"
+                    + "audio.onerror=() => finish(new Error('Downloaded audio cannot be decoded (media error '+(audio.error?.code||0)+')'));"
+                    + "audio.src=objectUrl; audio.load();"
+                    + "})).then(result => { window.__waveLiveResult=result; })"
                     + ".catch(e => { window.__waveLiveResult={error:e.message}; }); true;");
             long deadline = SystemClock.elapsedRealtime() + 210_000;
             JSONObject result;
@@ -50,6 +72,8 @@ public final class NativeAudioLiveTest extends InstrumentationTestCase {
             assertTrue("Audio bytes must reach JavaScript", result.optLong("size") > 1000);
             assertTrue("Audio import must be bounded", result.optLong("size") <= 64L * 1024 * 1024);
             assertTrue("A supported audio type must be returned", result.optString("type").startsWith("audio/"));
+            double duration = result.optDouble("duration", Double.NaN);
+            assertTrue("WebView must parse a finite positive media duration", Double.isFinite(duration) && duration > 0);
         } finally { getInstrumentation().runOnMainSync(activity::finish); }
     }
     private String evaluate(WebView view, String script) throws Exception {
