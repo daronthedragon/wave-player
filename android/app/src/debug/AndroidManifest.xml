@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test fixture only; never present in the release APK. -->
+        <activity android:name=".NativeAudioTestActivity" android:exported="false"
+            android:hardwareAccelerated="false" />
+    </application>
+</manifest>

@@ -19,37 +19,33 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-/** Optional real-provider check: bundled JS -> native listener -> provider -> playable media File. */
+/** Real importer check in a minimal debug fixture: bundled JS -> native listener -> provider -> playable File. */
 @RunWith(AndroidJUnit4.class)
 public final class NativeAudioLiveTest {
     @Test
-    public void testSoundCloudThroughBundledPlayer() throws Exception {
+    public void testSoundCloudThroughNativeImporter() throws Exception {
         assumeTrue("Enable waveLiveAudio to run provider network checks", WaveTestRunner.liveAudio);
         importTrack("https://soundcloud.com/forss/flickermood");
     }
     @Test
-    public void testYouTubeThroughBundledPlayer() throws Exception {
+    public void testYouTubeThroughNativeImporter() throws Exception {
         assumeTrue("Enable waveLiveAudio to run provider network checks", WaveTestRunner.liveAudio);
         importTrack("https://www.youtube.com/watch?v=M7lc1UVf-VE");
     }
     private void importTrack(String url) throws Exception {
-        Intent launch = new Intent(getInstrumentation().getTargetContext(), MainActivity.class);
+        Intent launch = new Intent(getInstrumentation().getTargetContext(), NativeAudioTestActivity.class);
         launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         Activity activity = getInstrumentation().startActivitySync(launch);
         try {
             AtomicReference<WebView> found = new AtomicReference<>();
             getInstrumentation().runOnMainSync(() -> found.set(findWebView(activity.getWindow().getDecorView())));
             WebView view = found.get();
-            assertNotNull("Bundled WebView must exist", view);
+            assertNotNull("Importer fixture WebView must exist", view);
             long readyDeadline = SystemClock.elapsedRealtime() + 30_000;
             while (!"true".equals(evaluate(view, "typeof WaveNativeAudio === 'object' && typeof WaveNativeAudio.postMessage === 'function'"))) {
                 assertTrue("Native listener did not initialize", SystemClock.elapsedRealtime() < readyDeadline);
                 SystemClock.sleep(100);
             }
-            // This test covers media import and decoding, not visual rendering.
-            // The CI emulator uses a software GPU; stop the decorative canvas
-            // animation so it cannot starve extraction or crash that GPU backend.
-            evaluate(view, "window.requestAnimationFrame=() => 0; document.querySelectorAll('canvas').forEach(c => c.style.display='none'); true;");
             evaluate(view, "window.__waveLiveResult={pending:true}; import('https://daronthedragon.github.io/wave-player/src/direct-audio.js').then(m => m.fetchNativeAudioFile({url:"
                     + JSONObject.quote(url) + ",title:'Runtime test'})).then(f => new Promise((resolve,reject) => {"
                     + "const audio=new Audio(), objectUrl=URL.createObjectURL(f); let settled=false;"
