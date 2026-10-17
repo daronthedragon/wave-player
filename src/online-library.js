@@ -1,5 +1,5 @@
-import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.4.0';
-import { audioServerURL, fetchAudioFile, hasNativeAudio, fetchNativeAudioFile } from './direct-audio.js?v=1.4.0';
+import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.4.1';
+import { audioServerURL, fetchAudioFile, hasNativeAudio, fetchNativeAudioFile } from './direct-audio.js?v=1.4.1';
 
 export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSaved, getPlaylists, onChange, notify }) {
   const $ = selector => document.querySelector(selector);

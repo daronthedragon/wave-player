@@ -6,6 +6,10 @@ import com.yausername.youtubedl_android.YoutubeDL;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 import com.yausername.youtubedl_android.YoutubeDLResponse;
 import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +24,56 @@ import static org.junit.Assert.fail;
 /** Offline device/emulator smoke: both packaged native runtimes must actually execute. */
 @RunWith(AndroidJUnit4.class)
 public final class NativeAudioRuntimeTest {
+    @Test
+    public void testPackagedExtractorReplacesOlderInstallAndKeepsMatchingPayload() throws Exception {
+        Context context = getInstrumentation().getTargetContext();
+        File directory = Files.createTempDirectory(context.getCacheDir().toPath(), "extractor-upgrade-").toFile();
+        File target = new File(directory, "yt-dlp");
+        File media = new File(directory, "user-media-sentinel");
+        try {
+            Files.write(target.toPath(), "old extractor".getBytes(StandardCharsets.UTF_8));
+            Files.write(media.toPath(), new byte[] { 4, 2 });
+            try (InputStream payload = context.getResources().openRawResource(R.raw.ytdlp)) {
+                assertTrue(PackagedExtractor.install(target, payload, PackagedExtractor.SHA256));
+            }
+            long fixedTime = 1_600_000_000_000L;
+            assertTrue(target.setLastModified(fixedTime));
+            try (InputStream payload = context.getResources().openRawResource(R.raw.ytdlp)) {
+                assertFalse(PackagedExtractor.install(target, payload, PackagedExtractor.SHA256));
+            }
+            assertEquals("A matching extractor must not be rewritten", fixedTime, target.lastModified());
+            assertEquals(2, Files.readAllBytes(media.toPath()).length);
+            assertEquals("No migration temporary files left behind", 2, directory.list().length);
+        } finally {
+            for (File child : directory.listFiles()) Files.deleteIfExists(child.toPath());
+            Files.deleteIfExists(directory.toPath());
+        }
+    }
+
+    @Test
+    public void testDamagedPackagedExtractorCannotReplaceExistingInstall() throws Exception {
+        Context context = getInstrumentation().getTargetContext();
+        File directory = Files.createTempDirectory(context.getCacheDir().toPath(), "extractor-checksum-").toFile();
+        File target = new File(directory, "yt-dlp");
+        byte[] old = "existing extractor".getBytes(StandardCharsets.UTF_8);
+        try {
+            Files.write(target.toPath(), old);
+            try (InputStream damaged = new ByteArrayInputStream(new byte[] { 1, 2, 3 })) {
+                try {
+                    PackagedExtractor.install(target, damaged, PackagedExtractor.SHA256);
+                    fail("A damaged packaged extractor must be rejected");
+                } catch (IOException expected) {
+                    assertTrue(expected.getMessage().contains("checksum"));
+                }
+            }
+            assertEquals(new String(old, StandardCharsets.UTF_8), new String(Files.readAllBytes(target.toPath()), StandardCharsets.UTF_8));
+            assertEquals("Failed migration must remove its temporary file", 1, directory.list().length);
+        } finally {
+            for (File child : directory.listFiles()) Files.deleteIfExists(child.toPath());
+            Files.deleteIfExists(directory.toPath());
+        }
+    }
+
     @Test
     public void testYouTubeVerificationMessagePreservesCancellationAndProviderScope() {
         String youtube = "https://www.youtube.com/watch?v=M7lc1UVf-VE";
@@ -45,18 +99,18 @@ public final class NativeAudioRuntimeTest {
     @Test
     public void testPackagedPythonAndExtractorLaunch() throws Exception {
         Context context = getInstrumentation().getTargetContext();
-        YoutubeDL.getInstance().init(context);
+        PackagedExtractor.initialize(context);
         YoutubeDLRequest request = new YoutubeDLRequest(Collections.emptyList());
         request.addOption("--version");
         YoutubeDLResponse response = YoutubeDL.getInstance().execute(request, "runtime-smoke");
         assertEquals(0, response.getExitCode());
-        assertTrue("Bundled yt-dlp must report its version", response.getOut().trim().matches("[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}.*"));
+        assertEquals("Updated APK must execute its pinned extractor", PackagedExtractor.VERSION, response.getOut().trim());
     }
 
     @Test
     public void testPackagedQuickJsLaunch() throws Exception {
         Context context = getInstrumentation().getTargetContext();
-        YoutubeDL.getInstance().init(context);
+        PackagedExtractor.initialize(context);
         File quickJs = new File(context.getApplicationInfo().nativeLibraryDir, "libqjs.so");
         assertTrue("QuickJS must be extracted as an executable", quickJs.canExecute());
         Process process = new ProcessBuilder(quickJs.getAbsolutePath(), "--eval", "console.log(6 * 7)")

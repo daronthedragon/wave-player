@@ -22,9 +22,11 @@ gradle lintDebug assembleDebug
 
 Gradle copies the built `dist` shell into generated APK assets and fails with a clear message if it has not been built. Run `npm run build` again after web changes. Open `android/` in Android Studio to run on a device. The app version comes from the root `package.json`; increase that semantic version before releasing an update.
 
+The app's `res/raw/ytdlp` overrides the wrapper's older resource with the official yt-dlp 2026.08.19 zipimport executable, including EJS 0.8.0. `PackagedExtractor` verifies its pinned SHA-256 before atomically installing it in the wrapper's private extractor directory. This also upgrades the cached extractor on existing installations; an APK resource replacement alone would only fix fresh installs. Matching extractor files are left untouched. No executable code is fetched during app use, and the migration never clears WebView storage or user media. See the pinned source, checksum, and licenses in `THIRD_PARTY_NOTICES.md`.
+
 Both Android workflows build the web assets before compiling Android. They also run a dependency-free Java test covering asset path traversal, escaping, downloads and private-path rejection.
 
-`AudioLinkTest.java` tests the native request boundary, including host confusion, ports, credentials, playlists, traversal, control characters, and command-like request IDs. `gradle connectedDebugAndroidTest` runs device/emulator smoke tests proving the packaged Python/extractor and QuickJS executables launch. These tests do not need provider access. To additionally verify the complete bundled JavaScript → native bridge → provider → returned audio File flow, run:
+`AudioLinkTest.java` tests the native request boundary, including host confusion, ports, credentials, playlists, traversal, control characters, and command-like request IDs. `gradle connectedDebugAndroidTest` runs device/emulator smoke tests proving the packaged Python/extractor and QuickJS executables launch. The tests assert the exact extractor version, replacement of an old extractor, preservation of an unchanged extractor, and rejection of a damaged update without losing the existing file. These tests do not need provider access. To additionally verify the complete bundled JavaScript → native bridge → provider → returned audio File flow, run:
 
 ```sh
 gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.waveLiveAudio=true

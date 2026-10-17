@@ -6,6 +6,16 @@ def releaseStore = System.getenv('WAVE_KEYSTORE_PATH')
 def webDist = file('../../dist')
 def generatedWebAssets = layout.buildDirectory.dir('generated/waveAssets')
 
+tasks.register('validatePackagedExtractor') {
+    inputs.file('src/main/res/raw/ytdlp')
+    doLast {
+        def payload = file('src/main/res/raw/ytdlp')
+        def expected = '1fa6733c37ea6fb51c99ad8fe785e7b7e5f3246c9b980230329d4fb72ed8d4d6'
+        def actual = java.security.MessageDigest.getInstance('SHA-256').digest(payload.bytes).encodeHex().toString()
+        if (actual != expected) throw new GradleException('Packaged yt-dlp checksum mismatch. Use the pinned official release asset.')
+    }
+}
+
 // Both CI and local builds run the website build first. Package its real shell,
 // not the large single-file desktop download or any server/private files.
 tasks.register('validateWebBuild') {
@@ -74,4 +84,4 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
 }
 
-tasks.named('preBuild').configure { dependsOn 'bundleWebPlayer' }
+tasks.named('preBuild').configure { dependsOn 'bundleWebPlayer', 'validatePackagedExtractor' }

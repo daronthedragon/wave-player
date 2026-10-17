@@ -116,7 +116,7 @@ final class NativeAudio implements AutoCloseable {
         boolean keep = false;
         try {
             if (!job.folder.mkdirs()) throw new IOException("Cannot create import directory");
-            YoutubeDL.getInstance().init(context);
+            PackagedExtractor.initialize(context);
             check(job);
             YoutubeDLRequest request = new YoutubeDLRequest(job.url);
             for (String flag : new String[] {"--ignore-config", "--no-plugin-dirs", "--no-playlist", "--no-cache-dir",
