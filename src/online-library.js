@@ -1,12 +1,13 @@
-import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.2.1';
-import { audioServerURL, fetchAudioFile } from './direct-audio.js?v=1.2.1';
+import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.3.0';
+import { audioServerURL, fetchAudioFile } from './direct-audio.js?v=1.3.0';
 
-export function createOnlineLibrary({ pauseLocal, playAudio, onChange, notify }) {
+export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSaved, getPlaylists, onChange, notify }) {
   const $ = selector => document.querySelector(selector);
   let links;
   try { links = loadSavedLinks(localStorage.getItem('wave-online-links')); }
   catch { links = []; }
   let current = null;
+  let targetPlaylist = '';
   let request = null;
   let server = '';
   try { server = localStorage.getItem('wave-audio-server') || ''; } catch {}
@@ -22,12 +23,23 @@ export function createOnlineLibrary({ pauseLocal, playAudio, onChange, notify })
     $('#link-form').reset();
     $('#media-link').value = prefill;
     $('#link-error').textContent = '';
+    const choices = $('#link-playlist');
+    choices.replaceChildren(new Option('Music library', ''), new Option('Create a new playlist…', '__new__'));
+    for (const playlist of getPlaylists()) choices.add(new Option(playlist.name, playlist.id));
+    $('#link-new-playlist').hidden = true;
+    $('#link-new-playlist-name').required = false;
     $('#link-dialog').showModal();
     $('#media-link').focus();
   }
-  function open(link) {
+  async function open(link, playlist = '') {
     pauseLocal();
+    if (findSaved(link.id)) {
+      try { await playSaved(link, playlist); }
+      catch (error) { notify(error.message || 'Unable to open the saved track.'); }
+      return;
+    }
     current = link;
+    targetPlaylist = playlist;
     $('#online-title').textContent = link.title;
     $('#online-provider').textContent = providerName(link);
     $('#online-source').href = link.url;
@@ -51,11 +63,13 @@ export function createOnlineLibrary({ pauseLocal, playAudio, onChange, notify })
       status.textContent = 'Loading audio… You can close this window to cancel. Longer tracks take more time.';
       const file = await fetchAudioFile(link, base, controller.signal);
       if (controller.signal.aborted || current !== link) return;
+      const destination = targetPlaylist;
       $('#online-player-dialog').close();
-      await playAudio(file);
-      notify('Audio added to Music. Use WAVE’s controls and visualizer.');
+      try { await playAudio(file, link, destination); }
+      catch (error) { notify(error.message || 'Unable to save this audio.'); }
     } catch (error) {
-      if (request !== controller || !$('#online-player-dialog').open) return;
+      if (request !== controller) return;
+      if (!$('#online-player-dialog').open) { if (!controller.signal.aborted) notify(error.message || 'Unable to save this audio.'); return; }
       status.textContent = error.name === 'TypeError'
         ? 'Cannot reach the audio server. Check its address, connection, and allowed website settings.'
         : error.message || 'Unable to load this track.';
@@ -65,6 +79,10 @@ export function createOnlineLibrary({ pauseLocal, playAudio, onChange, notify })
     }
   }
   $('#load-online-audio').onclick = () => void loadAudio();
+  $('#link-playlist').onchange = () => {
+    $('#link-new-playlist').hidden = $('#link-playlist').value !== '__new__';
+    $('#link-new-playlist-name').required = $('#link-playlist').value === '__new__';
+  };
   $('#audio-server-form').onsubmit = event => {
     event.preventDefault();
     try {
@@ -80,13 +98,16 @@ export function createOnlineLibrary({ pauseLocal, playAudio, onChange, notify })
       if (link.id.startsWith('youtube:playlist:') || new URL(link.url).pathname.includes('/sets/')) throw new Error('Paste an individual video or track. Playlist import is not supported yet.');
       const title = $('#link-title').value.trim();
       if (title) link.title = title.slice(0, 100);
+      const destination = $('#link-playlist').value === '__new__'
+        ? { name: $('#link-new-playlist-name').value.trim() } : $('#link-playlist').value;
+      if (typeof destination === 'object' && !destination.name) throw new Error('Give the new playlist a name.');
       const existing = links.findIndex(item => item.id === link.id);
       if (existing < 0 && links.length >= 100) throw new Error('Your 100-link library is full. Remove a saved link first.');
       if (existing >= 0) links[existing] = link;
       else links.unshift(link);
       persist();
       $('#link-dialog').close();
-      open(link);
+      void open(link, destination);
     } catch (error) {
       $('#link-error').textContent = error.message;
     }
@@ -106,7 +127,13 @@ export function createOnlineLibrary({ pauseLocal, playAudio, onChange, notify })
     add,
     entries: () => [
       { id: 'add-online-link', title: 'Add a link', subtitle: 'YouTube / SoundCloud', description: 'Load a video’s audio or a track into WAVE. Audio server required.', icon: 'plus', action: () => add() },
-      ...links.map(link => ({ id: link.id, title: link.title, subtitle: providerName(link), description: 'Load audio into Music with WAVE’s player and visualizer.', icon: 'music', action: () => open(link) }))
+      ...links.map(link => {
+        const saved = findSaved(link.id);
+        return { id: link.id, title: saved?.title || link.title,
+          subtitle: providerName(link) + (saved ? saved.storageState === 'persisted' ? ' · Saved on device' : ' · This session' : ''),
+          description: saved ? 'Play the saved audio immediately. No server needed.' : 'Load audio into Music with WAVE’s player and visualizer.',
+          icon: 'music', action: () => open(link) };
+      })
     ],
     receiveSharedLink() {
       const params = new URLSearchParams(location.search);

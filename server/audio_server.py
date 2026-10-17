@@ -132,7 +132,13 @@ class Resolver:
                         raise ResolveError("Audio request was cancelled.", 499)
                     if time.monotonic() >= deadline:
                         raise ResolveError("The provider took too long. Try another track.", 504)
-                    size = sum(path.stat().st_size for path in folder.rglob("*") if path.is_file())
+                    try:
+                        size = sum(path.stat().st_size for path in folder.rglob("*") if path.is_file())
+                    except FileNotFoundError:
+                        # The downloader atomically renames completed fragments.
+                        # Recheck the bounded folder on the next polling cycle.
+                        time.sleep(0.1)
+                        continue
                     if size > self.max_bytes + 4 * 1024 * 1024:
                         raise ResolveError("Track exceeds the 64 MB download limit.", 413)
                     time.sleep(0.1)

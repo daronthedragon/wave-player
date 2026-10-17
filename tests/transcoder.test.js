@@ -36,7 +36,7 @@ test('worker conversion produces typed output, reports progress and releases wor
     const output = await converter.convert(new Blob(['source']), { kind: 'video', fileName: 'movie.avi' });
     assert.equal(output.type, 'video/mp4');
     assert.equal(output.size, 3);
-    assert.equal(worker.url, 'https://example.com/wave-player/src/transcoder-worker.js?v=1.2.1');
+    assert.equal(worker.url, 'https://example.com/wave-player/src/transcoder-worker.js?v=1.3.0');
     assert.equal(worker.message.fileName, 'movie.avi');
     assert.equal(worker.message.coreURL, 'https://example.com/wave-player/vendor/ffmpeg/ffmpeg-core.js');
     assert.equal(worker.terminated, true);

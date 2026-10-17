@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing version tag to build and attach the APK to (for example v1.2.0)'
+        description: 'Existing version tag to build for local signing (for example v1.2.2)'
         required: true
         type: string
 
@@ -16,8 +16,6 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,10 +26,20 @@ jobs:
         run: |
           PACKAGE_VERSION=$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')
           test "$RELEASE_TAG" = "v$PACKAGE_VERSION" || { echo 'Tag must match package.json version.'; exit 1; }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build bundled offline player
+        run: npm run build
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+      - name: Test bundled asset path boundaries
+        run: |
+          mkdir -p android/.tmp/path-tests
+          javac -d android/.tmp/path-tests android/app/src/main/java/io/github/daronthedragon/waveplayer/BundlePath.java android/tests/BundlePathTest.java
+          java -cp android/.tmp/path-tests io.github.daronthedragon.waveplayer.BundlePathTest
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'
@@ -40,56 +48,19 @@ jobs:
           gradle-version: '8.13'
       - name: Install Android SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
-      - name: Restore private release signing key
-        id: signing
-        env:
-          KEYSTORE: ${{ secrets.WAVE_ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$KEYSTORE" ]; then
-            echo 'available=false' >> "$GITHUB_OUTPUT"
-            echo 'No hosted signing key configured. Building unsigned APK for local signing only.'
-            exit 0
-          fi
-          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/wave-release.jks"
-          chmod 600 "$RUNNER_TEMP/wave-release.jks"
-          echo 'available=true' >> "$GITHUB_OUTPUT"
-      - name: Build and lint release APK
+      - name: Build and lint unsigned release APK
         working-directory: android
-        env:
-          WAVE_KEYSTORE_PATH: ${{ steps.signing.outputs.available == 'true' && format('{0}/wave-release.jks', runner.temp) || '' }}
-          WAVE_KEYSTORE_PASSWORD: ${{ secrets.WAVE_ANDROID_KEYSTORE_PASSWORD }}
-          WAVE_KEY_ALIAS: ${{ secrets.WAVE_ANDROID_KEY_ALIAS }}
-          WAVE_KEY_PASSWORD: ${{ secrets.WAVE_ANDROID_KEY_PASSWORD }}
         run: gradle --no-daemon lintRelease assembleRelease
-      - name: Verify signature and name download
-        if: steps.signing.outputs.available == 'true'
-        run: |
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
-          cp android/app/build/outputs/apk/release/app-release.apk WAVE-Player.apk
-          sha256sum WAVE-Player.apk > WAVE-Player.apk.sha256
-      - uses: actions/upload-artifact@v4
-        if: steps.signing.outputs.available == 'true'
-        with:
-          name: WAVE-Player-Android
-          path: |
-            WAVE-Player.apk
-            WAVE-Player.apk.sha256
       - name: Save unsigned APK for local signing
-        if: steps.signing.outputs.available != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: WAVE-Android-Unsigned
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
-      - name: Attach APK to release
-        if: steps.signing.outputs.available == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: |
-          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Expected a version tag such as v1.2.0'; exit 1; }
-          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --verify-tag --title "WAVE $RELEASE_TAG" --notes 'WAVE Player downloads.' || gh release view "$RELEASE_TAG"
-          gh release upload "$RELEASE_TAG" WAVE-Player.apk WAVE-Player.apk.sha256 --clobber
-      - name: Remove signing key
+      - name: Save lint reports
         if: always()
-        run: rm -f "$RUNNER_TEMP/wave-release.jks"
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-lint-reports
+          path: android/app/build/reports/lint-results-release.*
+          if-no-files-found: ignore

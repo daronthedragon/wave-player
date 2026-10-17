@@ -24,7 +24,11 @@ test('imports locally with unavailable persistence, filters non-audio and avoids
   assert.equal(engine.current.title, 'Moon Safari');
   assert.equal(engine.current.artist, 'Air');
   assert.equal(engine.snapshot.playing, false);
-  assert.equal(errors.length, 1);
+  assert.equal(errors.length, 2);
+  assert.match(errors[1], /storage is full or unavailable/);
+  assert.equal(engine.storageAvailable, false);
+  assert.equal(engine.snapshot.storageAvailable, false);
+  assert.ok(engine.tracks.every(track => track.storageState === 'session'));
   assert.equal(engine.snapshot.duration, 0);
   engine.dispose();
 });
@@ -126,7 +130,7 @@ test('shuffle plays every track once and stops when repeat is off', async () => 
 
 // This small storage double returns records in key order, just like IndexedDB.
 // It checks that saving/restoring does not accidentally reorder the user's queue.
-function memoryIndexedDB() {
+function memoryIndexedDB(options = {}) {
   const records = new Map();
   return {
     open() {
@@ -134,15 +138,20 @@ function memoryIndexedDB() {
       queueMicrotask(() => {
         request.result = {
           close() {},
-          transaction() {
+          transaction(_storeName, mode) {
             const transaction = { objectStore: () => ({
               getAll: () => ({ result: [...records.values()].sort((a, b) => a.id.localeCompare(b.id)).map(record => structuredClone(record)) }),
               get: id => ({ result: records.has(id) ? structuredClone(records.get(id)) : undefined }),
-              put: record => { records.set(record.id, structuredClone(record)); return { result: record.id }; },
+              put: record => { if (!options.failWrites) records.set(record.id, structuredClone(record)); return { result: record.id }; },
               delete: id => { records.delete(id); return {}; },
               clear: () => { records.clear(); return {}; },
             }) };
-            queueMicrotask(() => transaction.oncomplete?.());
+            queueMicrotask(() => {
+              if (mode === 'readwrite' && options.failWrites) {
+                transaction.error = new DOMException('Quota exceeded', 'QuotaExceededError');
+                transaction.onabort?.();
+              } else transaction.oncomplete?.();
+            });
             return transaction;
           },
         };
@@ -165,6 +174,8 @@ test('restores imported blobs and demo tracks in original order, and persists de
     const restored = new PlayerEngine();
     await restored.init();
     assert.deepEqual(restored.tracks.map(track => ({ id: track.id, title: track.title })), expected);
+    assert.ok(restored.tracks.every(track => track.storageState === 'persisted'));
+    assert.equal(restored.storageAvailable, true);
     assert.equal(restored.snapshot.playing, false);
     const imported = await fetch(restored.tracks[4].url);
     assert.equal(await imported.text(), 'audio-fixture');
@@ -181,6 +192,112 @@ test('restores imported blobs and demo tracks in original order, and persists de
     await empty.init();
     assert.equal(empty.tracks.length, 0);
     empty.dispose();
+  } finally {
+    delete globalThis.indexedDB;
+  }
+});
+
+test('online audio retains source identity and bytes across reopening without duplicate imports', async () => {
+  globalThis.indexedDB = memoryIndexedDB();
+  try {
+    const source = { sourceId: 'soundcloud:artist/song', sourceUrl: 'https://soundcloud.com/artist/song', provider: 'soundcloud', title: 'Saved song' };
+    const first = new PlayerEngine();
+    const saved = await first.importOnlineFile(file('download.mp3'), source);
+    assert.equal(saved.storageState, 'persisted');
+    const savedId = saved.id;
+    const originalUrl = saved.url;
+    const duplicate = await first.importOnlineFile(file('different-name.mp3'), source);
+    assert.equal(duplicate.id, savedId);
+    assert.equal(first.tracks.length, 1);
+    first.dispose();
+    const reopened = new PlayerEngine();
+    await reopened.init();
+    const restored = reopened.tracks[0];
+    assert.equal(restored.id, savedId, 'playlist references remain valid after reopening');
+    assert.equal(restored.sourceId, source.sourceId);
+    assert.equal(restored.sourceUrl, source.sourceUrl);
+    assert.equal(restored.provider, 'soundcloud');
+    assert.equal(restored.title, 'Saved song');
+    assert.equal(restored.storageState, 'persisted');
+    assert.notEqual(restored.url, originalUrl, 'the playable blob URL is renewed');
+    assert.equal(await (await reopened.getFile(savedId)).text(), 'audio-fixture');
+    assert.equal((await reopened.importOnlineFile(null, source)).id, savedId, 'cached source can be reused without fetching new bytes');
+    assert.equal(reopened.tracks.length, 1);
+    reopened.dispose();
+  } finally {
+    delete globalThis.indexedDB;
+  }
+});
+
+test('failed storage keeps audio playable for this session and does not claim retention', async () => {
+  const options = { failWrites: true };
+  globalThis.indexedDB = memoryIndexedDB(options);
+  try {
+    const engine = new PlayerEngine();
+    const errors = [];
+    engine.addEventListener('error', event => errors.push(event.detail.message));
+    const track = await engine.importOnlineFile(file('online.mp3'), { sourceId: 'youtube:123456789ab', sourceUrl: 'https://www.youtube.com/watch?v=123456789ab', provider: 'youtube' });
+    assert.equal(track.storageState, 'session');
+    assert.equal(engine.storageAvailable, true, 'a connected database can still reject a write');
+    assert.equal(await (await engine.getFile(track.id)).text(), 'audio-fixture');
+    assert.match(errors[0], /loaded again next time/);
+    const [local] = await engine.addFiles([file('local.mp3')]);
+    assert.equal(local.storageState, 'session');
+    options.failWrites = false;
+    await engine.replaceMedia(local.id, file('local.wav', 'audio/wav'));
+    assert.equal(local.storageState, 'persisted', 'successful replacement updates retention status');
+    engine.dispose();
+    const reopened = new PlayerEngine();
+    await reopened.init();
+    assert.deepEqual(reopened.tracks.map(item => item.id), [local.id]);
+    reopened.dispose();
+  } finally {
+    delete globalThis.indexedDB;
+  }
+});
+
+test('same filename from distinct online sources retains both source identities', async () => {
+  const engine = new PlayerEngine();
+  const first = await engine.importOnlineFile(file('track.mp3'), { sourceId: 'soundcloud:a/song', sourceUrl: 'https://soundcloud.com/a/song', provider: 'soundcloud' });
+  const second = await engine.importOnlineFile(file('track.mp3'), { sourceId: 'soundcloud:b/song', sourceUrl: 'https://soundcloud.com/b/song', provider: 'soundcloud' });
+  assert.notEqual(first.id, second.id);
+  assert.equal(engine.tracks.length, 2);
+  engine.dispose();
+});
+
+test('upgrades legacy online imports in place and retains source metadata on subsequent launches', async () => {
+  globalThis.indexedDB = memoryIndexedDB();
+  try {
+    const downloaded = new File(['legacy-audio'], 'Artist - Download.mp3', { type: 'audio/mpeg', lastModified: 0 });
+    const oldVersion = new PlayerEngine();
+    const [legacy] = await oldVersion.addFiles([downloaded]);
+    const playlistIds = [legacy.id];
+    oldVersion.dispose();
+
+    const upgraded = new PlayerEngine();
+    await upgraded.init();
+    const oldUrl = upgraded.tracks[0].url;
+    const source = { sourceId: 'soundcloud:artist/download', sourceUrl: 'https://soundcloud.com/artist/download', provider: 'soundcloud', title: 'Download' };
+    const migrated = await upgraded.importOnlineFile(downloaded, source);
+    assert.equal(upgraded.tracks.length, 1);
+    assert.equal(migrated.id, legacy.id);
+    assert.equal(migrated.url, oldUrl, 'migration keeps the already-loaded audio source');
+    assert.equal(migrated.storageState, 'persisted');
+    upgraded.setQueue(playlistIds);
+    assert.deepEqual(upgraded.queue.map(track => track.id), playlistIds);
+    upgraded.dispose();
+
+    const reopened = new PlayerEngine();
+    await reopened.init();
+    assert.equal(reopened.tracks[0].sourceId, source.sourceId);
+    assert.equal(reopened.tracks[0].sourceUrl, source.sourceUrl);
+    assert.equal(reopened.tracks[0].provider, source.provider);
+    assert.equal(reopened.tracks[0].id, legacy.id);
+    assert.equal(await (await reopened.getFile(legacy.id)).text(), 'legacy-audio');
+    const distinct = await reopened.importOnlineFile(downloaded, { ...source, sourceId: 'soundcloud:other/download', sourceUrl: 'https://soundcloud.com/other/download' });
+    assert.notEqual(distinct.id, legacy.id, 'an identified source is never merged with another source');
+    assert.equal(reopened.tracks.length, 2);
+    reopened.dispose();
   } finally {
     delete globalThis.indexedDB;
   }

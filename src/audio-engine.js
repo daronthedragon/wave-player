@@ -106,6 +106,7 @@ export class PlayerEngine extends EventTarget {
   }
 
   get current() { return this.tracks[this.currentIndex] || null; }
+  get storageAvailable() { return Boolean(this.db) && !this._disposed; }
   get queue() {
     if (this._queueIds === null) return [...this.tracks];
     const tracksById = new Map(this.tracks.map(track => [track.id, track]));
@@ -116,6 +117,7 @@ export class PlayerEngine extends EventTarget {
       tracks: this.tracks.map(track => ({ ...track })), current: this.current ? { ...this.current } : null,
       currentIndex: this.currentIndex, queueIds: this.queue.map(track => track.id), playing: !this.audio.paused && !this.audio.ended,
       volume: this.audio.volume, shuffle: this.shuffle, repeat: this.repeat,
+      storageAvailable: this.storageAvailable,
       currentTime: finite(this.audio.currentTime), duration: finite(this.audio.duration, this.current?.duration || 0),
     };
   }
@@ -143,17 +145,20 @@ export class PlayerEngine extends EventTarget {
           request.onblocked = () => reject(new Error('Storage is busy'));
         });
         if (this._disposed) { this.db.close(); return this.snapshot; }
-        this.db.onversionchange = () => { this.db.close(); this.db = null; };
+        this.db.onversionchange = () => { this.db.close(); this.db = null; this._emit(); };
         const saved = await this._store('readonly', store => store.getAll());
         for (const record of (saved || []).sort((a, b) => finite(a.addedAt) - finite(b.addedAt))) {
           if (record.blob instanceof Blob && !this.tracks.some(track => track.id === record.id)) {
             const { blob, ...metadata } = record;
             this._files.set(record.id, blob);
-            this.tracks.push({ ...metadata, kind: metadata.kind || mediaKind(metadata.fileName, metadata.type) || 'audio', originalFileName: metadata.originalFileName || metadata.fileName, url: URL.createObjectURL(blob) });
+            this.tracks.push({ ...metadata, storageState: 'persisted', kind: metadata.kind || mediaKind(metadata.fileName, metadata.type) || 'audio', originalFileName: metadata.originalFileName || metadata.fileName, url: URL.createObjectURL(blob) });
           }
         }
         if (this.currentIndex < 0 && this.tracks.length) this.select(this.tracks[0].id, false);
-      } catch { /* Playback still works when persistence is unavailable. */ }
+      } catch {
+        this.db?.close(); this.db = null;
+        // Playback still works when persistence is unavailable.
+      }
       this._emit();
       return this.snapshot;
     })();
@@ -161,7 +166,7 @@ export class PlayerEngine extends EventTarget {
   }
 
   _store(mode, callback) {
-    if (!this.db) return Promise.resolve(null);
+    if (!this.storageAvailable) return mode === 'readonly' ? Promise.resolve(null) : Promise.reject(new Error('Storage unavailable'));
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction('tracks', mode);
       const request = callback(transaction.objectStore('tracks'));
@@ -178,8 +183,16 @@ export class PlayerEngine extends EventTarget {
   async _persistTrack(track) {
     const blob = this._files.get(track.id);
     if (!blob) return;
-    const { url, ...metadata } = track;
-    await this._store('readwrite', store => store.put({ ...metadata, blob }));
+    const { url, storageState, ...metadata } = track;
+    try {
+      await this._store('readwrite', store => store.put({ ...metadata, blob }));
+      track.storageState = 'persisted';
+    } catch (error) {
+      track.storageState = 'session';
+      throw error;
+    } finally {
+      if (track.storageState !== storageState) this._emit();
+    }
   }
 
   async getFile(id) {
@@ -208,6 +221,7 @@ export class PlayerEngine extends EventTarget {
       type: replacementType,
       duration: 0,
       converted: true,
+      storageState: 'session',
       url: URL.createObjectURL(replacement),
     });
     delete track.videoWidth;
@@ -230,6 +244,43 @@ export class PlayerEngine extends EventTarget {
     return this.tracks.reduce((next, track) => Math.max(next, finite(track.addedAt) + 1), Date.now());
   }
 
+  _createTrack(file, metadata = {}) {
+    const kind = mediaKind(file.name, file.type);
+    const track = {
+      id: globalThis.crypto?.randomUUID?.() || `media-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      ...metadataFromName(file.name), album: kind === 'video' ? 'Imported videos' : 'Imported audio',
+      fileName: file.name, originalFileName: file.name, type: file.type, kind, duration: 0,
+      signature: `${file.name}:${file.size}:${file.lastModified || 0}`, addedAt: this._nextAddedAt(),
+      ...metadata, storageState: 'session', url: URL.createObjectURL(file),
+    };
+    this._files.set(track.id, file);
+    this.tracks.push(track);
+    return track;
+  }
+
+  async importOnlineFile(file, { sourceId, sourceUrl, provider, title } = {}) {
+    if (typeof sourceId !== 'string' || !sourceId.trim()) throw new TypeError('An online source ID is required.');
+    if (!['youtube', 'soundcloud'].includes(provider)) throw new TypeError('Unsupported online audio provider.');
+    if (typeof sourceUrl !== 'string' || !/^https:\/\//i.test(sourceUrl)) throw new TypeError('An HTTPS source URL is required.');
+    await this.init();
+    const existing = this.tracks.find(track => track.sourceId === sourceId);
+    if (existing) return existing;
+    if (!(file instanceof Blob) || mediaKind(file.name, file.type) !== 'audio') throw new TypeError('Online audio must be an audio Blob or File.');
+    const metadata = { sourceId, sourceUrl, provider };
+    if (typeof title === 'string' && title.trim()) metadata.title = title.trim();
+    // Older versions imported online audio as ordinary files. Attach source
+    // identity to that saved file without invalidating its playlist references.
+    const signature = `${file.name}:${file.size}:${file.lastModified || 0}`;
+    const legacy = this.tracks.find(track => !track.sourceId && track.signature === signature);
+    const track = legacy ? Object.assign(legacy, metadata) : this._createTrack(file, metadata);
+    try { await this._persistTrack(track); } catch {
+      this._error('This audio is ready to play, but device storage is full or unavailable. It will need to be loaded again next time.');
+    }
+    if (this.currentIndex < 0) this.select(track.id, false);
+    this._emit();
+    return track;
+  }
+
   async addFiles(files) {
     await this.init();
     const added = [];
@@ -241,11 +292,9 @@ export class PlayerEngine extends EventTarget {
       if (!kind) { rejected += 1; continue; }
       const signature = `${file.name}:${file.size}:${file.lastModified || 0}`;
       if (this.tracks.some(track => track.signature === signature)) continue;
-      const metadata = { id: globalThis.crypto?.randomUUID?.() || `media-${Date.now()}-${Math.random().toString(36).slice(2)}`, ...metadataFromName(file.name), album: kind === 'video' ? 'Imported videos' : 'Imported audio', fileName: file.name, originalFileName: file.name, type: file.type, kind, duration: 0, signature, addedAt: this._nextAddedAt() };
-      const track = { ...metadata, url: URL.createObjectURL(file) };
-      this._files.set(track.id, file);
-      this.tracks.push(track); added.push(track);
-      try { await this._store('readwrite', store => store.put({ ...metadata, blob: file })); } catch { storageFailed = true; }
+      const track = this._createTrack(file);
+      added.push(track);
+      try { await this._persistTrack(track); } catch { storageFailed = true; }
     }
     if (this.currentIndex < 0 && this.tracks.length) this.select(this.tracks[0].id, false);
     this._emit();
@@ -263,8 +312,9 @@ export class PlayerEngine extends EventTarget {
         const blob = createWave(notes);
         const record = { ...metadata, fileName: `${metadata.title}.wav`, originalFileName: `${metadata.title}.wav`, kind: 'audio', type: 'audio/wav', duration: 24, demo: true, addedAt: this._nextAddedAt() };
         this._files.set(record.id, blob);
-        this.tracks.push({ ...record, url: URL.createObjectURL(blob) });
-        try { await this._store('readwrite', store => store.put({ ...record, blob })); } catch { /* Demos can always be regenerated from settings. */ }
+        const track = { ...record, storageState: 'session', url: URL.createObjectURL(blob) };
+        this.tracks.push(track);
+        try { await this._persistTrack(track); } catch { /* Demos can always be regenerated from settings. */ }
         // Give the interface a frame between generating each original demo.
         await new Promise(resolve => setTimeout(resolve, 0));
       }
@@ -417,5 +467,6 @@ export class PlayerEngine extends EventTarget {
     this.tracks.forEach(track => URL.revokeObjectURL(track.url));
     this._files.clear();
     this.db?.close();
+    this.db = null;
   }
 }

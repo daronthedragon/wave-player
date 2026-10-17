@@ -14,6 +14,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.webkit.CookieManager;
+import android.webkit.ServiceWorkerClient;
+import android.webkit.ServiceWorkerController;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -29,7 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.window.OnBackInvokedDispatcher;
 
-/** Thin hosted player: no native JavaScript bridge and no broad storage permissions. */
+/** Bundled player, retaining its original HTTPS storage origin across app updates. */
 public final class MainActivity extends Activity {
     private static final String HOME = "https://daronthedragon.github.io/wave-player/";
     private static final int PICK_MEDIA = 21;
@@ -70,7 +72,18 @@ public final class MainActivity extends Activity {
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setUserAgentString(settings.getUserAgentString() + " WAVEAndroid/1");
         CookieManager.getInstance().setAcceptThirdPartyCookies(player, true);
+        BundledPlayerAssets bundledAssets = new BundledPlayerAssets(getAssets());
+        // Older APKs registered a service worker. Route its requests to the same
+        // bundle until the web app unregisters it; never clear the user's data.
+        ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                return bundledAssets.intercept(request);
+            }
+        });
         player.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return bundledAssets.intercept(request);
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (!request.isForMainFrame()) return !isHttps(uri);
@@ -172,7 +185,7 @@ public final class MainActivity extends Activity {
         panel.setPadding(40, 40, 40, 40);
         panel.setBackgroundColor(Color.rgb(15, 19, 25));
         TextView message = new TextView(this);
-        message.setText("WAVE couldn’t load.\n\nConnect to the internet and retry. After a successful visit, cached player files and imported media may work offline. YouTube and SoundCloud always need a connection.");
+        message.setText("WAVE couldn’t open its bundled player.\n\nRetry or install the latest APK over this app. Keep app data to preserve your library. Imported files and saved audio can play offline. Retrieving new YouTube or SoundCloud audio requires an internet connection and your configured HTTPS audio server.");
         message.setTextColor(Color.WHITE);
         message.setTextSize(18);
         panel.addView(message);

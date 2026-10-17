@@ -3,6 +3,28 @@ plugins { id 'com.android.application' }
 def packageInfo = new groovy.json.JsonSlurper().parse(file('../../package.json'))
 def versionParts = packageInfo.version.tokenize('.').collect { it.toInteger() }
 def releaseStore = System.getenv('WAVE_KEYSTORE_PATH')
+def webDist = file('../../dist')
+def generatedWebAssets = layout.buildDirectory.dir('generated/waveAssets')
+
+// Both CI and local builds run the website build first. Package its real shell,
+// not the large single-file desktop download or any server/private files.
+tasks.register('validateWebBuild') {
+    doLast {
+        for (String required : ['index.html', 'src/main.js', 'src/styles.css', 'manifest.webmanifest', 'vendor/ffmpeg/ffmpeg-core.wasm']) {
+            if (!new File(webDist, required).isFile()) {
+                throw new GradleException('Missing web build. Run npm run build in the repository root first.')
+            }
+        }
+    }
+}
+tasks.register('bundleWebPlayer', Sync) {
+    dependsOn 'validateWebBuild'
+    from(webDist) {
+        include 'index.html', 'manifest.webmanifest', 'sw.js', 'LICENSE'
+        include 'src/**', 'assets/**', 'vendor/**'
+    }
+    into generatedWebAssets.map { it.dir('wave') }
+}
 
 android {
     namespace 'io.github.daronthedragon.waveplayer'
@@ -35,4 +57,7 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     lint { abortOnError true }
+    sourceSets.main.assets.srcDir(generatedWebAssets)
 }
+
+tasks.named('preBuild').configure { dependsOn 'bundleWebPlayer' }

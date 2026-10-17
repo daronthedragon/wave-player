@@ -6,11 +6,25 @@ on:
     paths:
       - 'android/**'
       - 'package.json'
+      - 'index.html'
+      - 'src/**'
+      - 'assets/**'
+      - 'vendor/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'scripts/build.mjs'
       - '.github/workflows/android-check.yml'
   pull_request:
     paths:
       - 'android/**'
       - 'package.json'
+      - 'index.html'
+      - 'src/**'
+      - 'assets/**'
+      - 'vendor/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
+      - 'scripts/build.mjs'
       - '.github/workflows/android-check.yml'
   workflow_dispatch:
 
@@ -22,10 +36,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build bundled offline player
+        run: npm run build
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+      - name: Test bundled asset path boundaries
+        run: |
+          mkdir -p android/.tmp/path-tests
+          javac -d android/.tmp/path-tests android/app/src/main/java/io/github/daronthedragon/waveplayer/BundlePath.java android/tests/BundlePathTest.java
+          java -cp android/.tmp/path-tests io.github.daronthedragon.waveplayer.BundlePathTest
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'
