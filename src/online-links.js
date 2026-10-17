@@ -32,7 +32,7 @@ function startSeconds(url) {
   return Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 2147483647 ? seconds : 0;
 }
 
-/** Validates a provider URL and builds a fixed-host iframe URL; never fetches media. */
+/** Validates a provider URL and normalizes provider links; never fetches media. */
 export function parseMediaLink(input) {
   const source = readURL(input);
   const host = source.hostname.toLowerCase();
@@ -51,24 +51,19 @@ export function parseMediaLink(input) {
       throw new Error('Use a YouTube video link or a playlist link containing a valid list ID.');
     }
     const url = new URL(playlistOnly ? 'https://www.youtube.com/playlist' : 'https://www.youtube.com/watch');
-    const embed = new URL(playlistOnly ? 'https://www.youtube-nocookie.com/embed/videoseries' : `https://www.youtube-nocookie.com/embed/${videoId}`);
     if (!playlistOnly) url.searchParams.set('v', videoId);
     if (list && PLAYLIST_ID.test(list)) {
       url.searchParams.set('list', list);
-      embed.searchParams.set('list', list);
     }
     const start = startSeconds(source);
     if (start) {
       url.searchParams.set('t', String(start));
-      embed.searchParams.set('start', String(start));
     }
-    embed.searchParams.set('playsinline', '1');
     return {
       id: `youtube:${playlistOnly ? 'playlist' : 'video'}:${playlistOnly ? list : videoId}`,
       provider: 'youtube',
       title: playlistOnly ? `YouTube playlist · ${list}` : `YouTube · ${videoId}`,
-      url: url.href,
-      embedUrl: embed.href
+      url: url.href
     };
   }
 
@@ -81,17 +76,12 @@ export function parseMediaLink(input) {
     }
     const path = '/' + parts.join('/');
     const url = 'https://soundcloud.com' + path;
-    const embed = new URL('https://w.soundcloud.com/player/');
-    embed.searchParams.set('url', url);
-    embed.searchParams.set('auto_play', 'false');
-    embed.searchParams.set('show_comments', 'false');
-    embed.searchParams.set('visual', 'true');
-    return { id: `soundcloud:${path}`, provider: 'soundcloud', title: `${parts[0]} · ${parts.at(-1).replaceAll('-', ' ')}`.slice(0, 100), url, embedUrl: embed.href };
+    return { id: `soundcloud:${path}`, provider: 'soundcloud', title: `${parts[0]} · ${parts.at(-1).replaceAll('-', ' ')}`.slice(0, 100), url };
   }
   throw new Error('Only YouTube and SoundCloud links are supported.');
 }
 
-/** Treat persisted objects as untrusted; regenerate IDs, provider and embed URLs. */
+/** Treat persisted objects as untrusted; regenerate IDs, provider and canonical URLs. */
 export function loadSavedLinks(storageValue) {
   if (typeof storageValue !== 'string' || storageValue.length > 1000000) return [];
   let entries;

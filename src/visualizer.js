@@ -1,4 +1,4 @@
-import { PS3WaveRenderer } from './ps3-wave.js?v=1.2.0';
+import { PS3WaveRenderer } from './ps3-wave.js?v=1.2.1';
 // Console-style broad silky light surfaces and audio visualizations.
 // A media element may only be wrapped once, including across visualizer instances.
 const audioGraphs = new WeakMap();

@@ -1,11 +1,17 @@
-import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.2.0';
+import { parseMediaLink, loadSavedLinks } from './online-links.js?v=1.2.1';
+import { audioServerURL, fetchAudioFile } from './direct-audio.js?v=1.2.1';
 
-export function createOnlineLibrary({ pauseLocal, onChange, notify }) {
+export function createOnlineLibrary({ pauseLocal, playAudio, onChange, notify }) {
   const $ = selector => document.querySelector(selector);
   let links;
   try { links = loadSavedLinks(localStorage.getItem('wave-online-links')); }
   catch { links = []; }
   let current = null;
+  let request = null;
+  let server = '';
+  try { server = localStorage.getItem('wave-audio-server') || ''; } catch {}
+  if (!server && location.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(location.hostname)) server = 'http://127.0.0.1:4181';
+  $('#audio-server').value = server;
   const providerName = link => link.provider === 'youtube' ? 'YouTube' : 'SoundCloud';
   function persist() {
     try { localStorage.setItem('wave-online-links', JSON.stringify(links)); }
@@ -26,30 +32,52 @@ export function createOnlineLibrary({ pauseLocal, onChange, notify }) {
     $('#online-provider').textContent = providerName(link);
     $('#online-source').href = link.url;
     $('#online-source').textContent = 'Open in ' + providerName(link);
-    $('#online-hosted').hidden = location.protocol !== 'file:';
-    $('#online-hosted').href = 'https://daronthedragon.github.io/wave-player/?share-url=' + encodeURIComponent(link.url);
-    const holder = $('#online-embed');
-    holder.replaceChildren();
-    $('#online-status').textContent = !navigator.onLine
-      ? 'You’re offline. Reconnect, then reopen this link to stream it.'
-      : 'Use the player controls below. If playback is unavailable, open the original link.';
-    if (location.protocol === 'file:' && link.provider === 'youtube') {
-      $('#online-status').textContent = 'YouTube needs the hosted WAVE app. Open WAVE online, or use the original YouTube link below.';
-    } else if (navigator.onLine) {
-      const frame = document.createElement('iframe');
-      frame.title = providerName(link) + ' player: ' + link.title;
-      frame.src = link.embedUrl;
-      frame.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
-      frame.allowFullscreen = true;
-      frame.referrerPolicy = 'strict-origin-when-cross-origin';
-      holder.append(frame);
-    }
     $('#online-player-dialog').showModal();
+    void loadAudio();
   }
+  async function loadAudio() {
+    request?.abort();
+    const controller = new AbortController();
+    request = controller;
+    const link = current;
+    if (!link) return;
+    const status = $('#online-status');
+    const button = $('#load-online-audio');
+    button.disabled = true;
+    const timeout = setTimeout(() => controller.abort(new Error('Loading timed out. Try a shorter track.')), 210000);
+    try {
+      if (!server) throw new Error('Connect an audio server below to load this track. The public site does not have one connected yet.');
+      const base = audioServerURL(server);
+      status.textContent = 'Loading audio… You can close this window to cancel. Longer tracks take more time.';
+      const file = await fetchAudioFile(link, base, controller.signal);
+      if (controller.signal.aborted || current !== link) return;
+      $('#online-player-dialog').close();
+      await playAudio(file);
+      notify('Audio added to Music. Use WAVE’s controls and visualizer.');
+    } catch (error) {
+      if (request !== controller || !$('#online-player-dialog').open) return;
+      status.textContent = error.name === 'TypeError'
+        ? 'Cannot reach the audio server. Check its address, connection, and allowed website settings.'
+        : error.message || 'Unable to load this track.';
+    } finally {
+      clearTimeout(timeout);
+      if (request === controller) { request = null; button.disabled = false; }
+    }
+  }
+  $('#load-online-audio').onclick = () => void loadAudio();
+  $('#audio-server-form').onsubmit = event => {
+    event.preventDefault();
+    try {
+      server = audioServerURL($('#audio-server').value.trim());
+      try { localStorage.setItem('wave-audio-server', server); } catch {}
+      void loadAudio();
+    } catch (error) { $('#online-status').textContent = error.message; }
+  };
   $('#link-form').addEventListener('submit', event => {
     event.preventDefault();
     try {
       const link = parseMediaLink($('#media-link').value);
+      if (link.id.startsWith('youtube:playlist:') || new URL(link.url).pathname.includes('/sets/')) throw new Error('Paste an individual video or track. Playlist import is not supported yet.');
       const title = $('#link-title').value.trim();
       if (title) link.title = title.slice(0, 100);
       const existing = links.findIndex(item => item.id === link.id);
@@ -64,7 +92,7 @@ export function createOnlineLibrary({ pauseLocal, onChange, notify }) {
     }
   });
   $('#online-player-dialog').addEventListener('close', () => {
-    $('#online-embed').replaceChildren();
+    request?.abort();
     current = null;
   });
   $('#remove-online-link').onclick = () => {
@@ -77,8 +105,8 @@ export function createOnlineLibrary({ pauseLocal, onChange, notify }) {
   return {
     add,
     entries: () => [
-      { id: 'add-online-link', title: 'Add a link', subtitle: 'YouTube / SoundCloud', description: 'Paste a video, track, or playlist link.', icon: 'plus', action: () => add() },
-      ...links.map(link => ({ id: link.id, title: link.title, subtitle: providerName(link), description: 'Stream with the original player. Internet required.', icon: link.provider === 'youtube' ? 'video' : 'music', action: () => open(link) }))
+      { id: 'add-online-link', title: 'Add a link', subtitle: 'YouTube / SoundCloud', description: 'Load a video’s audio or a track into WAVE. Audio server required.', icon: 'plus', action: () => add() },
+      ...links.map(link => ({ id: link.id, title: link.title, subtitle: providerName(link), description: 'Load audio into Music with WAVE’s player and visualizer.', icon: 'music', action: () => open(link) }))
     ],
     receiveSharedLink() {
       const params = new URLSearchParams(location.search);

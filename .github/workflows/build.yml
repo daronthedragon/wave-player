@@ -17,10 +17,15 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s server -p 'test_*.py'
       - run: npm run build
       - name: Package browser edition
         run: |
           cp README.md LICENSE dist/
+          zip -r Wave-Audio-Server.zip server -x '*/__pycache__/*'
           cd dist
           zip -r ../Wave-Player-Web.zip .
       - uses: actions/upload-artifact@v4
@@ -28,11 +33,13 @@ jobs:
           name: Wave-Player-Web
           path: |
             Wave-Player-Web.zip
+            Wave-Audio-Server.zip
             dist/downloads/WAVE-Player.html
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             Wave-Player-Web.zip
+            Wave-Audio-Server.zip
             dist/downloads/WAVE-Player.html
           generate_release_notes: true

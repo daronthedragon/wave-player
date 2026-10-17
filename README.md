@@ -24,9 +24,13 @@ Phone browser, Home Screen app, and Android APK storage can be separate: import 
 
 ## YouTube and SoundCloud links
 
-Choose **+ Link** or **Online → Add a link**, paste a full YouTube video/playlist or SoundCloud track/playlist URL, optionally give it a name, and choose **Save & open player**. Up to 100 links are saved on this device. Tap a saved item to reopen it; **Remove saved link** removes the bookmark. On Android browsers that support installed web-app sharing, WAVE can also appear in the system Share menu; shared URLs are reviewed before opening.
+Choose **+ Link** or **Online → Add a link** and paste an individual YouTube video or full SoundCloud track URL. WAVE retrieves the audio through a separately run audio server and imports it into **Music**. Playback uses WAVE’s own transport, playlists, and audio-reactive visualizers. There are no YouTube or SoundCloud embeds. Loaded files persist on this device when browser storage is available.
 
-Playback uses the visible [YouTube embedded player](https://developers.google.com/youtube/player_parameters) and [SoundCloud widget](https://developers.soundcloud.com/docs/api/html5-widget). Their own controls, availability, ads, sign-in restrictions, and background-playback rules apply. Streams require internet and are not downloaded or converted by WAVE. Local audio visualizers do not analyze embedded streams. If a provider disallows embedding, use **Open in YouTube / SoundCloud**. For SoundCloud short links, open the link first and copy the full track URL. YouTube links in the standalone HTML must be opened through the hosted app or YouTube because local files do not supply the required web origin.
+**The public GitHub Pages website has no audio server connected by default.** Run the [local audio companion](server/README.md), open the local test site, and load a link. For phone/public use, deploy the companion behind HTTPS and enter its origin under **Audio server connection**. Hosting is a separate requirement; the APK loads the same website and also needs this connection. No paid service is provisioned automatically.
+
+Links are sent to the chosen server, which contacts the provider using [yt-dlp](https://github.com/yt-dlp/yt-dlp). Individual public tracks only; playlists, live streams, private/login-required, DRM-protected, or provider-blocked media are not supported. SoundCloud short links must first be opened and copied as full track URLs. Loading must finish before playback; this is a file import, not instant streaming. Use media you have permission to access and retain.
+
+Up to 100 source bookmarks are stored locally. Removing a bookmark does not remove its imported audio; remove that separately from Music. Android sharing opens a review form before sending the URL to the audio server.
 
 ## Navigate and listen
 
@@ -70,7 +74,7 @@ The **Publish browser player** Action deploys `dist/` to GitHub Pages on pushes 
 
 ## Privacy and offline behavior
 
-The interface and artwork are cached by the service worker on the hosted site. Imported files are read locally and are not uploaded. WAVE has no analytics or account backend. A normal site visit downloads the app's static files from its host. Opening a saved streaming link connects to YouTube or SoundCloud and their players may use cookies, analytics, and other resources under their policies. No provider player is loaded until you open a link; closing it stops playback and removes the iframe. The standalone HTML works offline for local media; online links require internet.
+The interface and artwork are cached by the service worker. Local files are never uploaded. Loading an online link sends its URL to your configured audio server, which temporarily caches the retrieved file and returns it to your device. Only connect to a server you trust. No provider iframe, analytics, or sign-in session is loaded in WAVE. The standalone HTML works offline for already imported media; retrieving new online audio requires a reachable HTTPS server and internet.
 
 ## Artwork and attribution
 
