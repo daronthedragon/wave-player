@@ -18,7 +18,7 @@
 <dialog id="link-dialog"><form id="link-form">
 <div class="dialog-heading"><h2>Add a link</h2><button type="button" class="icon-button close-dialog" aria-label="Close link form"><i data-icon="close"></i></button></div>
 <p>Keep your YouTube videos and SoundCloud tracks or playlists in one place.</p>
-<label class="field-label" for="media-link">YouTube or SoundCloud URL</label><input id="media-link" type="url" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=…" required maxlength="2048">
+<label class="field-label" for="media-link">YouTube or SoundCloud URL</label><input id="media-link" type="text" inputmode="url" autocomplete="off" placeholder="https://www.youtube.com/watch?v=…" required maxlength="2048">
 <label class="field-label" for="link-title">Name in your library (optional)</label><input id="link-title" maxlength="100" placeholder="Late night mix">
 <p id="link-error" role="alert"></p><button class="glass-button" type="submit">Save &amp; open player</button>
 <p class="link-disclosure">Opening a link connects to that service. Internet is required; availability and ads are controlled by the provider. Links are saved on this device.</p>
@@ -26,7 +26,7 @@
 <dialog id="online-player-dialog" aria-labelledby="online-title">
 <div class="dialog-heading"><div><small id="online-provider"></small><h2 id="online-title">Online player</h2></div><button class="glass-button close-dialog" aria-label="Close online player">○ Back to XMB</button></div>
 <p id="online-status" role="status"></p><div id="online-embed"></div>
-<div class="online-actions"><a id="online-source" class="glass-button" target="_blank" rel="noopener noreferrer">Open original</a><button id="remove-online-link" class="glass-button">Remove saved link</button></div>
+<div class="online-actions"><a id="online-source" class="glass-button" target="_blank" rel="noopener noreferrer">Open original</a><a id="online-hosted" class="glass-button" href="https://daronthedragon.github.io/wave-player/" target="_blank" rel="noopener noreferrer" hidden>Open in WAVE online</a><button id="remove-online-link" class="glass-button">Remove saved link</button></div>
 <p class="link-disclosure">Use the embedded player’s controls. Streaming links cannot be downloaded for offline playback in WAVE. Background playback follows the service’s rules.</p>
 </dialog>
 <dialog id="install-dialog" aria-labelledby="install-title">

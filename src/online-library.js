@@ -26,6 +26,8 @@ export function createOnlineLibrary({ pauseLocal, onChange, notify }) {
     $('#online-provider').textContent = providerName(link);
     $('#online-source').href = link.url;
     $('#online-source').textContent = 'Open in ' + providerName(link);
+    $('#online-hosted').hidden = location.protocol !== 'file:';
+    $('#online-hosted').href = 'https://daronthedragon.github.io/wave-player/?share-url=' + encodeURIComponent(link.url);
     const holder = $('#online-embed');
     holder.replaceChildren();
     $('#online-status').textContent = !navigator.onLine
