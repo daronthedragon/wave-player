@@ -13,12 +13,24 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /** Offline device/emulator smoke: both packaged native runtimes must actually execute. */
 @RunWith(AndroidJUnit4.class)
 public final class NativeAudioRuntimeTest {
+    @Test
+    public void testDebugDiagnosticsRedactPrivateValues() {
+        String diagnostic = NativeAudio.diagnostic(new IllegalStateException(
+                "Sign in required https://cdn.example/audio?token=private-token token=private-token /data/app/private-path",
+                new IllegalArgumentException("cookie=private-cookie ?signature=private-signature")));
+        assertTrue(diagnostic.contains("Sign in required"));
+        assertTrue(diagnostic.contains("IllegalArgumentException"));
+        assertFalse(diagnostic.contains("cdn.example"));
+        assertFalse(diagnostic.contains("private-"));
+    }
+
     @Test
     public void testPackagedPythonAndExtractorLaunch() throws Exception {
         Context context = getInstrumentation().getTargetContext();

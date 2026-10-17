@@ -1,10 +1,12 @@
 package io.github.daronthedragon.waveplayer;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -154,6 +156,11 @@ final class NativeAudio implements AutoCloseable {
                     .put("mime", saved.mime).put("audioUrl", ORIGIN + AUDIO_PATH + token);
             send(job.reply, response);
         } catch (Exception error) {
+            if ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                // Debug/emulator diagnostics only. Never log raw URLs, signed
+                // CDN queries, cookies, or credentials into a public CI report.
+                Log.w("WAVENativeAudio", diagnostic(error));
+            }
             failure(job.reply, job.id, job.stopReason != null ? job.stopReason
                     : "This public track could not be retrieved on your device. Check the link and connection, or import the audio file. Private, live, restricted, or unavailable tracks are not supported.");
         } finally {
@@ -191,6 +198,21 @@ final class NativeAudio implements AutoCloseable {
     private static String clean(String value) {
         String text = value.replaceAll("[\\p{Cntrl}]", "").trim();
         return text.substring(0, Math.min(text.length(), 160));
+    }
+    static String diagnostic(Throwable error) {
+        StringBuilder result = new StringBuilder();
+        for (int depth = 0; error != null && depth < 3; depth++, error = error.getCause()) {
+            if (depth > 0) result.append("; caused by ");
+            String message = String.valueOf(error.getMessage())
+                    .replaceAll("(?i)https?://[^\\s]+", "[URL]")
+                    .replaceAll("\\?[^\\s]+", "[QUERY]")
+                    .replaceAll("/data/[^\\s]+", "[APP_PATH]")
+                    .replaceAll("(?i)(authorization|cookie|token|signature|password|secret)\\s*[:=]\\s*[^\\s]+", "$1=[REDACTED]")
+                    .replaceAll("[\\p{Cntrl}]", " ");
+            result.append(error.getClass().getSimpleName()).append(": ")
+                    .append(message, 0, Math.min(message.length(), 1200));
+        }
+        return result.toString();
     }
     private void failure(JavaScriptReplyProxy reply, String id, String reason) {
         try { send(reply, new JSONObject().put("id", id).put("ok", false).put("error", reason)); }
