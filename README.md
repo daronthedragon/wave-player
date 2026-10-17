@@ -12,6 +12,22 @@ Open [WAVE Player](https://daronthedragon.github.io/wave-player/) in a modern br
 
 Imported media is saved locally in browser storage when available. Storage quotas, private browsing, file-URL storage restrictions, or clearing site data can remove saved tracks; keep your original files. The player is not a backup service.
 
+## iPhone and Android
+
+Tap **Install** in WAVE for device-specific instructions.
+
+- **iPhone / iPad:** open the live website in Safari, choose **Share → Add to Home Screen**, keep **Open as Web App** enabled if shown, and tap **Add**. This installs the web app; it is not an IPA or App Store download. See [Apple's installation guide](https://support.apple.com/guide/iphone/iphea86e5236/ios).
+- **Android web app:** in Chrome, choose **⋮ → Add to Home screen → Install**, or use WAVE's install button when available. See [Chrome's installation guide](https://support.google.com/chrome/answer/9658361?co=GENIE.Platform%3DAndroid&hl=en).
+- **Android APK:** download [WAVE-Player.apk](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.apk), open it, and allow installation from your browser when Android asks. The app loads the live WAVE website with a native file picker. First launch requires internet; cached local playback depends on WebView storage. Keep Android System WebView updated. Install future APK updates over this app to retain its library.
+
+Phone browser, Home Screen app, and Android APK storage can be separate: import your files in the version you intend to use. No account or cloud library sync is provided.
+
+## YouTube and SoundCloud links
+
+Choose **+ Link** or **Online → Add a link**, paste a full YouTube video/playlist or SoundCloud track/playlist URL, optionally give it a name, and choose **Save & open player**. Up to 100 links are saved on this device. Tap a saved item to reopen it; **Remove saved link** removes the bookmark. On Android browsers that support installed web-app sharing, WAVE can also appear in the system Share menu; shared URLs are reviewed before opening.
+
+Playback uses the visible [YouTube embedded player](https://developers.google.com/youtube/player_parameters) and [SoundCloud widget](https://developers.soundcloud.com/docs/api/html5-widget). Their own controls, availability, ads, sign-in restrictions, and background-playback rules apply. Streams require internet and are not downloaded or converted by WAVE. Local audio visualizers do not analyze embedded streams. If a provider disallows embedding, use **Open in YouTube / SoundCloud**. For SoundCloud short links, open the link first and copy the full track URL. YouTube links in the standalone HTML must be opened through the hosted app or YouTube because local files do not supply the required web origin.
+
 ## Navigate and listen
 
 Use **Left / Right** to move between categories and **Up / Down** to select an item. Press **Enter** to open or play the selected item; mouse and touch controls are also available. Press **Space** to play or pause, **Shift + Left / Right** to seek five seconds, and **/** to search your music.
@@ -54,7 +70,7 @@ The **Publish browser player** Action deploys `dist/` to GitHub Pages on pushes 
 
 ## Privacy and offline behavior
 
-The interface and artwork are cached by the service worker on the hosted site. Imported media is read locally and is not sent to GitHub Pages or another server. The app does not use analytics, trackers, remote fonts, or a backend. A normal site visit downloads the app's static files from its host. The standalone HTML requires no network connection.
+The interface and artwork are cached by the service worker on the hosted site. Imported files are read locally and are not uploaded. WAVE has no analytics or account backend. A normal site visit downloads the app's static files from its host. Opening a saved streaming link connects to YouTube or SoundCloud and their players may use cookies, analytics, and other resources under their policies. No provider player is loaded until you open a link; closing it stops playback and removes the iframe. The standalone HTML works offline for local media; online links require internet.
 
 ## Artwork and attribution
 

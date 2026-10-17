@@ -1,0 +1,38 @@
+plugins { id 'com.android.application' }
+
+def packageInfo = new groovy.json.JsonSlurper().parse(file('../../package.json'))
+def versionParts = packageInfo.version.tokenize('.').collect { it.toInteger() }
+def releaseStore = System.getenv('WAVE_KEYSTORE_PATH')
+
+android {
+    namespace 'io.github.daronthedragon.waveplayer'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'io.github.daronthedragon.waveplayer'
+        minSdk 26
+        targetSdk 36
+        versionCode versionParts[0] * 1000000 + versionParts[1] * 1000 + versionParts[2]
+        versionName packageInfo.version
+    }
+    signingConfigs {
+        if (releaseStore) {
+            release {
+                storeFile file(releaseStore)
+                storePassword System.getenv('WAVE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('WAVE_KEY_ALIAS')
+                keyPassword System.getenv('WAVE_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (releaseStore) signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    lint { abortOnError true }
+}

@@ -1,10 +1,10 @@
 /* Bump this version whenever a new release changes the offline shell. */
-const CACHE_NAME = 'wave-shell-v5';
+const CACHE_NAME = 'wave-shell-v6';
 const BASE = new URL('./', self.location.href);
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
-  './src/main.js?v=1.1.1', './src/styles.css?v=1.1.1', './src/audio-engine.js?v=1.1.1', './src/visualizer.js?v=1.1.1', './src/ps3-wave.js?v=1.1.1',
-  './src/transcoder.js?v=1.1.1', './src/transcoder-worker.js?v=1.1.1',
+  './src/main.js?v=1.2.0', './src/online-library.js?v=1.2.0', './src/online-links.js?v=1.2.0', './src/styles.css?v=1.2.0', './src/audio-engine.js?v=1.2.0', './src/visualizer.js?v=1.2.0', './src/ps3-wave.js?v=1.2.0',
+  './src/transcoder.js?v=1.2.0', './src/transcoder-worker.js?v=1.2.0',
   './vendor/ffmpeg/ffmpeg-core.js', './vendor/ffmpeg/ffmpeg-core.wasm',
   './assets/wave-background.svg', './assets/cover-drift.svg',
   './assets/cover-nocturne.svg', './assets/cover-orbit.svg',
