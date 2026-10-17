@@ -38,6 +38,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          # The Android APK is signed locally and attached before publication.
+          draft: true
           files: |
             Wave-Player-Web.zip
             Wave-Audio-Server.zip

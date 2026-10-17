@@ -32,6 +32,8 @@ Choose **+ Link** or **Online → Add a link** and paste an individual YouTube v
 
 In the Android APK, [yt-dlp](https://github.com/yt-dlp/yt-dlp) runs locally using the bundled Android runtime and contacts the provider directly. Keep WAVE in the foreground while downloading. Downloads are limited to 64 MiB and three minutes of processing. Provider changes can require an APK update. If you explicitly configure a companion in the web version, that companion receives the link instead. Individual public tracks only; playlists, live streams, private/login-required, DRM-protected, or provider-blocked media are not supported. SoundCloud short links must first be opened and copied as full track URLs. Loading must finish before playback; this is a file import, not instant streaming. Use media you have permission to access and retain.
 
+**YouTube verification limits:** YouTube may reject a connection with “Sign in to confirm you’re not a bot.” WAVE cannot retrieve audio when this happens and does not import account cookies or bypass verification. Android emulator checks verified a real SoundCloud download through WAVE’s native bridge and audio decoder. The YouTube check was blocked by this verification response on GitHub’s runner; YouTube playback on a physical phone has not been verified. A separate local desktop YouTube download and playback test passed. These checks do not establish that every public link will work on every connection.
+
 Up to 100 source bookmarks are stored locally. On the website and Home Screen app without a companion, **+ Link → Save link** saves a bookmark and offers **Open in YouTube / SoundCloud** or **Import audio file**; it does not claim to download the track. The audio download and playlist destination controls appear when the Android downloader or a configured companion is available. Removing a bookmark does not remove its imported audio; remove that separately from Music. Android sharing opens a review form before the app retrieves the audio on the phone.
 
 ## Navigate and listen
@@ -70,7 +72,7 @@ The development server binds only to `127.0.0.1`, serves files from this project
 
 ## Releases and deployment
 
-The repository's **Releases** page provides `WAVE-Player.html` and `Wave-Player-Web.zip`, the complete static website. The **Build downloadable player** Action produces these artifacts manually or when a version tag such as `v1.0.0` is pushed. Tagged builds attach the files to a GitHub Release.
+The repository's **Releases** page provides `WAVE-Player.html` and `Wave-Player-Web.zip`, the complete static website. The **Build downloadable player** Action produces these artifacts manually or when a version tag such as `v1.0.0` is pushed. Tagged builds attach the files to a draft GitHub Release. Attach the locally signed Android APK and checksum, verify the downloads, then publish the draft.
 
 The **Publish browser player** Action deploys `dist/` to GitHub Pages on pushes to `main` or manual dispatch. In repository settings, set Pages source to **GitHub Actions**. Any HTTPS static host can serve `dist/`.
 

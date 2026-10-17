@@ -21,6 +21,17 @@ import static org.junit.Assert.fail;
 @RunWith(AndroidJUnit4.class)
 public final class NativeAudioRuntimeTest {
     @Test
+    public void testYouTubeVerificationMessagePreservesCancellationAndProviderScope() {
+        String youtube = "https://www.youtube.com/watch?v=M7lc1UVf-VE";
+        Exception verification = new IllegalStateException("ERROR: [youtube] Sign in to confirm you’re not a bot.");
+        assertEquals("YouTube requires verification on this connection, so WAVE cannot retrieve this track. Import an audio file instead.",
+                NativeAudio.failureMessage(youtube, null, verification));
+        assertEquals("Audio import cancelled.", NativeAudio.failureMessage(youtube, "Audio import cancelled.", verification));
+        assertFalse(NativeAudio.failureMessage("https://soundcloud.com/forss/flickermood", null, verification).contains("YouTube"));
+        assertFalse(NativeAudio.failureMessage(youtube, null, new IllegalStateException("HTTP 403")).contains("verification"));
+    }
+
+    @Test
     public void testDebugDiagnosticsRedactPrivateValues() {
         String diagnostic = NativeAudio.diagnostic(new IllegalStateException(
                 "Sign in required https://cdn.example/audio?token=private-token token=private-token /data/app/private-path",

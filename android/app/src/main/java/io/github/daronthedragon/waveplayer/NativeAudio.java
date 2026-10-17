@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -161,8 +162,7 @@ final class NativeAudio implements AutoCloseable {
                 // CDN queries, cookies, or credentials into a public CI report.
                 Log.w("WAVENativeAudio", diagnostic(error));
             }
-            failure(job.reply, job.id, job.stopReason != null ? job.stopReason
-                    : "This public track could not be retrieved on your device. Check the link and connection, or import the audio file. Private, live, restricted, or unavailable tracks are not supported.");
+            failure(job.reply, job.id, failureMessage(job.url, job.stopReason, error));
         } finally {
             watch.cancel(false);
             if (!keep) delete(job.folder);
@@ -198,6 +198,18 @@ final class NativeAudio implements AutoCloseable {
     private static String clean(String value) {
         String text = value.replaceAll("[\\p{Cntrl}]", "").trim();
         return text.substring(0, Math.min(text.length(), 160));
+    }
+    static String failureMessage(String canonicalUrl, String stopReason, Throwable error) {
+        if (stopReason != null) return stopReason;
+        if (canonicalUrl != null && canonicalUrl.startsWith("https://www.youtube.com/watch?v=")) {
+            for (int depth = 0; error != null && depth < 3; depth++, error = error.getCause()) {
+                String message = String.valueOf(error.getMessage()).toLowerCase(Locale.ROOT);
+                if (message.contains("sign in to confirm") && message.contains("not a bot")) {
+                    return "YouTube requires verification on this connection, so WAVE cannot retrieve this track. Import an audio file instead.";
+                }
+            }
+        }
+        return "This public track could not be retrieved on your device. Check the link and connection, or import the audio file. Private, live, restricted, or unavailable tracks are not supported.";
     }
     static String diagnostic(Throwable error) {
         StringBuilder result = new StringBuilder();
