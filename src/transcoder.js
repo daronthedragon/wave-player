@@ -44,7 +44,7 @@ export class MediaTranscoder extends EventTarget {
         if (EMBEDDED_FFMPEG) {
           job.workerURL = URL.createObjectURL(new Blob([EMBEDDED_FFMPEG.workerSource], { type: 'text/javascript' }));
         }
-        job.worker = new Worker(job.workerURL || new URL('src/transcoder-worker.js?v=1.4.1', base));
+        job.worker = new Worker(job.workerURL || new URL('src/transcoder-worker.js?v=2.0.0', base));
         job.worker.onerror = () => job.finish(new Error('The local converter could not start. Reload the player or use a recent browser.'));
         job.worker.onmessageerror = () => job.finish(new Error('The converter could not read this file in memory. Try a smaller file.'));
         job.worker.onmessage = ({ data }) => {

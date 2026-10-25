@@ -1,4 +1,4 @@
-# WAVE Player — complete guide
+# WAVE 2.0 — complete guide
 
 [← Back to WAVE](../README.md)
 
@@ -45,6 +45,29 @@ Up to 100 source bookmarks are stored locally. On the website and Home Screen ap
 Use **Left / Right** to move between categories and **Up / Down** to select an item. Press **Enter** to open or play the selected item; mouse and touch controls are also available. Press **Space** to play or pause, **Shift + Left / Right** to seek five seconds, and **/** to search your music.
 
 Open the visualizer category for three full-screen views: **Flow** layers luminous ribbons, **Spectrum** shows frequency bars, and **Orbit** surrounds the music with moving light. The effects respond to the playing audio when the browser permits audio analysis. Press **Escape** to return to the menu. Settings include color atmospheres and reduced motion.
+
+## Library and playlists
+
+Choose **Library** in the top bar, or **Track options → Manage library & playlists** on a small screen. The workspace has three tabs: **Library**, **Playlists**, and **Play queue**. Your existing library and playlist IDs are retained when updating to WAVE 2.0.
+
+In **Library**, search titles, artists, albums, and filenames. Filter to audio, video, favorites, or files saved offline; sort by title, artist, album, newest additions, or duration. **Library order** preserves import order. A **SAVED** badge means the file is retained in this installation; **SESSION** means it is only available until the session ends.
+
+Use the checkboxes to select several tracks. **Select shown** selects the current filtered results; earlier selections remain selected when you change the search or filter. The selected count covers all selected tracks. Use **Clear** to start a new selection. Choose an existing destination or **New playlist…**, then **Add to playlist**. A track is added only once to the same playlist.
+
+In **Playlists**, choose a collection, edit its name and press **Rename**, or use **Duplicate**. The arrows change its track order, and **×** removes a track from that collection. **Delete playlist** asks for a second click to confirm. Removing a track from a playlist or deleting a playlist keeps the underlying media in your library. **Play shown** starts the visible collection; it can also play the current library search results.
+
+## Queue, speed, and sleep
+
+Choose the queue button beside the volume controls, **Library → Play queue**, or **Track options → Queue, speed & sleep timer**. The queue is separate from playlist membership: editing one does not delete media or rewrite a playlist.
+
+- **Next** on a library row places that track immediately after the current track. This explicit Play-next request takes priority over shuffle.
+- **Add to queue** places the selected tracks at the end. WAVE keeps each track once in the queue; adding one already queued moves it to the end.
+- In **Play queue**, use the arrows to reorder upcoming tracks. The current track stays in place; **×** removes another queue entry while keeping its library file.
+- Queue order is used with shuffle off. Selecting a different track from an XMB category or using **Play shown** starts a new queue from that collection.
+
+The workspace footer includes **Speed**, from **0.5× to 2×**. WAVE remembers this setting along with volume, shuffle, repeat, the queue, and the current track and position when device storage is available. Reopening always leaves playback paused until you press **Play**. Position is saved periodically and when you pause or leave the page; a forced browser or device shutdown can lose the most recent few seconds. Clearing storage removes these preferences as well as saved media.
+
+**Sleep** pauses playback after **15, 30, 60, or 90 minutes**. Choose **Off** to cancel it. The timer belongs to the current session and is not restored after reopening. It is checked against its deadline, but a browser or operating system that suspends WAVE can delay the pause; this is not an OS alarm or a guarantee of background execution.
 
 ## Audio, video, and local conversion
 

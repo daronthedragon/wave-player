@@ -58,6 +58,7 @@ export class PlayerEngine extends EventTarget {
     this.audio.preload = 'metadata';
     this.audio.playsInline = true;
     this.audio.volume = 0.75;
+    this.audio.defaultPlaybackRate = this.audio.playbackRate = 1;
     this.tracks = [];
     this.currentIndex = -1;
     this.shuffle = false;
@@ -68,10 +69,18 @@ export class PlayerEngine extends EventTarget {
     this._history = [];
     this._shufflePlayed = new Set();
     this._queueIds = null;
+    this._priorityQueue = [];
+    this.sleepUntil = 0;
+    this._sleepTimer = null;
+    this._pendingSeek = null;
+    this._ready = false;
+    this._lastPositionSave = 0;
     this._disposed = false;
     this._listeners = [];
     this._files = new Map();
-    for (const type of ['play', 'pause', 'playing', 'volumechange']) this._listen(type, () => this._emit());
+    for (const type of ['play', 'pause', 'playing', 'volumechange', 'ratechange']) this._listen(type, () => { this._saveSettings(); this._emit(); });
+    this._onPageHide = () => this._saveSettings();
+    globalThis.addEventListener?.('pagehide', this._onPageHide);
     this._listen('loadedmetadata', () => {
       if (this.current) {
         if (Number.isFinite(this.audio.duration)) this.current.duration = this.audio.duration;
@@ -82,10 +91,19 @@ export class PlayerEngine extends EventTarget {
         }
         void this._persistTrack(this.current).catch(() => {});
       }
+      if (this._pendingSeek && this._pendingSeek.id === this.current?.id && Number.isFinite(this.audio.duration)) {
+        const position = this._pendingSeek.time;
+        this._pendingSeek = null;
+        this.seek(position);
+      }
       this._emit();
     });
     this._listen('durationchange', () => this._emit());
-    this._listen('timeupdate', () => this.dispatchEvent(new CustomEvent('progress', { detail: this.snapshot })));
+    this._listen('timeupdate', () => {
+      this._checkSleepTimer();
+      if (Date.now() - this._lastPositionSave >= 5000) this._saveSettings();
+      this.dispatchEvent(new CustomEvent('progress', { detail: this.snapshot }));
+    });
     this._listen('ended', () => {
       if (this.repeat === 'one') { this.seek(0); void this.play(); }
       else this.next(true);
@@ -117,8 +135,9 @@ export class PlayerEngine extends EventTarget {
       tracks: this.tracks.map(track => ({ ...track })), current: this.current ? { ...this.current } : null,
       currentIndex: this.currentIndex, queueIds: this.queue.map(track => track.id), playing: !this.audio.paused && !this.audio.ended,
       volume: this.audio.volume, shuffle: this.shuffle, repeat: this.repeat,
+      playbackRate: this.audio.playbackRate, sleepUntil: this.sleepUntil,
       storageAvailable: this.storageAvailable,
-      currentTime: finite(this.audio.currentTime), duration: finite(this.audio.duration, this.current?.duration || 0),
+      currentTime: this._pendingSeek && this._pendingSeek.id === this.current?.id ? this._pendingSeek.time : finite(this.audio.currentTime), duration: finite(this.audio.duration, this.current?.duration || 0),
     };
   }
 
@@ -129,9 +148,12 @@ export class PlayerEngine extends EventTarget {
   async init() {
     if (this._initPromise) return this._initPromise;
     this._initPromise = (async () => {
+      let preferences = {};
       try {
-        const preferences = JSON.parse(localStorage.getItem('waveform-player-settings') || '{}');
+        const parsed = JSON.parse(localStorage.getItem('waveform-player-settings') || '{}');
+        preferences = parsed && typeof parsed === 'object' ? parsed : {};
         this.audio.volume = clamp(preferences.volume ?? 0.75, 0, 1);
+        this.audio.defaultPlaybackRate = this.audio.playbackRate = clamp(preferences.playbackRate ?? 1, 0.5, 2);
         this.shuffle = Boolean(preferences.shuffle);
         this.repeat = ['off', 'all', 'one'].includes(preferences.repeat) ? preferences.repeat : 'off';
       } catch { /* Storage may be unavailable in private browsing. */ }
@@ -154,11 +176,26 @@ export class PlayerEngine extends EventTarget {
             this.tracks.push({ ...metadata, storageState: 'persisted', kind: metadata.kind || mediaKind(metadata.fileName, metadata.type) || 'audio', originalFileName: metadata.originalFileName || metadata.fileName, url: URL.createObjectURL(blob) });
           }
         }
-        if (this.currentIndex < 0 && this.tracks.length) this.select(this.tracks[0].id, false);
       } catch {
         this.db?.close(); this.db = null;
         // Playback still works when persistence is unavailable.
       }
+      if (this._disposed) return this.snapshot;
+      if (Array.isArray(preferences.queueIds)) this.setQueue(preferences.queueIds);
+      const resumeId = this.queue.some(track => track.id === preferences.currentId) ? preferences.currentId : this.queue[0]?.id;
+      if (resumeId) {
+        this.select(resumeId, false);
+        if (resumeId === preferences.currentId && finite(preferences.currentTime) > 0) {
+          this._pendingSeek = { id: resumeId, time: Math.max(0, finite(preferences.currentTime)) };
+          if (Number.isFinite(this.audio.duration)) this.seek(this._pendingSeek.time);
+        }
+      }
+      if (Array.isArray(preferences.priorityQueue)) {
+        const available = new Set(this.queue.map(track => track.id));
+        this._priorityQueue = [...new Set(preferences.priorityQueue)].filter(id => available.has(id) && id !== this.current?.id);
+      }
+      this._ready = true;
+      this._saveSettings();
       this._emit();
       return this.snapshot;
     })();
@@ -177,7 +214,13 @@ export class PlayerEngine extends EventTarget {
   }
 
   _saveSettings() {
-    try { localStorage.setItem('waveform-player-settings', JSON.stringify({ volume: this.audio.volume, shuffle: this.shuffle, repeat: this.repeat })); } catch { /* Optional persistence. */ }
+    if (!this._ready || this._disposed) return;
+    this._lastPositionSave = Date.now();
+    const currentTime = this._pendingSeek && this._pendingSeek.id === this.current?.id ? this._pendingSeek.time : finite(this.audio.currentTime);
+    try { localStorage.setItem('waveform-player-settings', JSON.stringify({
+      volume: this.audio.volume, shuffle: this.shuffle, repeat: this.repeat, playbackRate: this.audio.playbackRate,
+      queueIds: this._queueIds, priorityQueue: this._priorityQueue, currentId: this.current?.id || null, currentTime,
+    })); } catch { /* Optional persistence. */ }
   }
 
   async _persistTrack(track) {
@@ -334,18 +377,22 @@ export class PlayerEngine extends EventTarget {
         this._history.push(this.current.id);
         if (this._history.length > 1000) this._history.shift();
       }
+      this._pendingSeek = null;
       this.currentIndex = index;
+      this._priorityQueue = this._priorityQueue.filter(trackId => trackId !== id);
       this._shufflePlayed.add(this.current.id);
       this.audio.src = this.current.url;
       this.audio.load();
       this._updateMediaSession();
     }
+    this._saveSettings();
     this._emit();
     if (autoplay) void this.play();
     return true;
   }
 
   async play() {
+    if (this._disposed || this._checkSleepTimer()) return;
     const queue = this.queue;
     if (!queue.length) return;
     if (!this.current || !queue.some(track => track.id === this.current.id)) this.select(queue[0].id, false);
@@ -364,6 +411,8 @@ export class PlayerEngine extends EventTarget {
     if (!queue.length) { if (automatic) this.pause(); return; }
     const currentQueueIndex = queue.findIndex(track => track.id === this.current?.id);
     let index = currentQueueIndex + 1;
+    const priority = this.shuffle ? this._priorityQueue.find(id => queue.some(track => track.id === id)) : null;
+    if (priority) { this.select(priority); return; }
     if (this.shuffle && queue.length > 1) {
       let candidates = queue.filter(track => !this._shufflePlayed.has(track.id));
       if (!candidates.length) {
@@ -394,17 +443,90 @@ export class PlayerEngine extends EventTarget {
 
   setQueue(ids = null) {
     const available = new Set(this.tracks.map(track => track.id));
-    this._queueIds = ids === null ? null : [...new Set(ids)].filter(id => available.has(id));
+    this._queueIds = ids === null ? null : [...new Set(Array.isArray(ids) ? ids : [])].filter(id => available.has(id));
+    this._priorityQueue = [];
     this._history = [];
     this._shufflePlayed = new Set(this.current ? [this.current.id] : []);
+    this._saveSettings();
     this._emit();
     return this.queue;
+  }
+
+  // Queue edits keep the current source playing. A track appears at most once.
+  playNext(id) {
+    if (!this.tracks.some(track => track.id === id) || id === this.current?.id) return false;
+    const ids = this.queue.map(track => track.id).filter(trackId => trackId !== id);
+    if (this.current && !ids.includes(this.current.id)) ids.unshift(this.current.id);
+    ids.splice(ids.indexOf(this.current?.id) + 1, 0, id);
+    this._queueIds = ids;
+    this._priorityQueue = [id, ...this._priorityQueue.filter(trackId => trackId !== id)];
+    this._shufflePlayed.delete(id);
+    this._saveSettings(); this._emit(); return true;
+  }
+
+  enqueue(id) {
+    if (!this.tracks.some(track => track.id === id) || id === this.current?.id) return false;
+    this._queueIds = [...this.queue.map(track => track.id).filter(trackId => trackId !== id), id];
+    this._priorityQueue = this._priorityQueue.filter(trackId => trackId !== id);
+    this._shufflePlayed.delete(id);
+    this._saveSettings(); this._emit(); return true;
+  }
+
+  moveQueueItem(id, delta) {
+    const ids = this.queue.map(track => track.id);
+    const index = ids.indexOf(id);
+    const currentIndex = ids.indexOf(this.current?.id);
+    const target = index + Math.sign(finite(delta));
+    if (index <= currentIndex || target <= currentIndex || index < 0 || target >= ids.length || index === target) return false;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    this._queueIds = ids;
+    this._priorityQueue.sort((a, b) => ids.indexOf(a) - ids.indexOf(b));
+    this._saveSettings(); this._emit(); return true;
+  }
+
+  removeQueueItem(id) {
+    if (id === this.current?.id || !this.queue.some(track => track.id === id)) return false;
+    this._queueIds = this.queue.map(track => track.id).filter(trackId => trackId !== id);
+    this._priorityQueue = this._priorityQueue.filter(trackId => trackId !== id);
+    this._history = this._history.filter(trackId => trackId !== id);
+    this._saveSettings(); this._emit(); return true;
+  }
+
+  setPlaybackRate(value) {
+    this.audio.defaultPlaybackRate = this.audio.playbackRate = clamp(value, 0.5, 2);
+    this._saveSettings(); this._emit(); return this.audio.playbackRate;
+  }
+
+  setSleepTimer(minutes = 0) {
+    if (this._disposed) return 0;
+    clearTimeout(this._sleepTimer);
+    const duration = clamp(minutes, 0, 24 * 60) * 60_000;
+    this.sleepUntil = duration ? Date.now() + duration : 0;
+    this._sleepTimer = duration ? setTimeout(() => this._checkSleepTimer(), duration) : null;
+    this._sleepTimer?.unref?.();
+    this._emit(); return this.sleepUntil;
+  }
+
+  _checkSleepTimer() {
+    if (!this.sleepUntil || Date.now() < this.sleepUntil) return false;
+    clearTimeout(this._sleepTimer);
+    this._sleepTimer = null; this.sleepUntil = 0;
+    this.pause();
+    this.dispatchEvent(new CustomEvent('sleep', { detail: { message: 'Sleep timer finished. Playback paused.' } }));
+    return true;
   }
 
   seek(seconds) {
     const duration = this.snapshot.duration;
     if (duration <= 0) return;
-    try { this.audio.currentTime = clamp(seconds, 0, duration); } catch { /* Metadata is not ready yet. */ }
+    const position = clamp(seconds, 0, duration);
+    if (!Number.isFinite(this.audio.duration) && this.current) {
+      this._pendingSeek = { id: this.current.id, time: position };
+    } else {
+      try { this.audio.currentTime = position; this._pendingSeek = null; }
+      catch { if (this.current) this._pendingSeek = { id: this.current.id, time: position }; }
+    }
+    this._saveSettings();
     this.dispatchEvent(new CustomEvent('progress', { detail: this.snapshot }));
   }
   setVolume(value) { this.audio.volume = clamp(value, 0, 1); this._saveSettings(); this._emit(); }
@@ -432,6 +554,8 @@ export class PlayerEngine extends EventTarget {
     this._files.delete(id);
     this._history = this._history.filter(previous => previous !== id);
     this._shufflePlayed.delete(id);
+    this._priorityQueue = this._priorityQueue.filter(trackId => trackId !== id);
+    this._saveSettings();
     this._updateMediaSession();
     this._emit();
     try { await this._store('readwrite', store => store.delete(id)); } catch { this._error('The file was removed for this session, but its saved copy could not be deleted.'); }
@@ -442,6 +566,8 @@ export class PlayerEngine extends EventTarget {
     this.tracks.forEach(track => URL.revokeObjectURL(track.url));
     this._files.clear();
     this.tracks = []; this.currentIndex = -1; this._history = []; this._shufflePlayed.clear(); this._queueIds = null;
+    this._priorityQueue = []; this._pendingSeek = null;
+    this._saveSettings();
     this._updateMediaSession(); this._emit();
     try { await this._store('readwrite', store => store.clear()); } catch { this._error('The library was cleared for this session, but saved files could not be deleted.'); }
   }
@@ -461,7 +587,10 @@ export class PlayerEngine extends EventTarget {
   }
 
   dispose() {
+    this._saveSettings();
     this._disposed = true;
+    clearTimeout(this._sleepTimer); this._sleepTimer = null; this.sleepUntil = 0;
+    globalThis.removeEventListener?.('pagehide', this._onPageHide);
     this.audio.pause(); this.audio.removeAttribute('src'); this.audio.load();
     for (const [type, handler] of this._listeners) this.audio.removeEventListener(type, handler);
     this.tracks.forEach(track => URL.revokeObjectURL(track.url));

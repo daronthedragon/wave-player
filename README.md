@@ -5,7 +5,7 @@
 ### Your library. Your device. Your atmosphere.
 
 A console-inspired audio & video player with flowing light, an XMB-style menu,<br>
-persistent playlists, and a place for the files you already love.
+an editable play queue, and a place for the files you already love.
 
 [![Open player](https://img.shields.io/badge/OPEN_PLAYER-Website-83d9ed?style=for-the-badge&labelColor=17232f)](https://daronthedragon.github.io/wave-player/)
 [![Download Android](https://img.shields.io/badge/DOWNLOAD-Android_APK-c2c6ff?style=for-the-badge&labelColor=17232f)](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.apk)
@@ -13,7 +13,7 @@ persistent playlists, and a place for the files you already love.
 
 **No WAVE account · Local media stays local · No Electron**
 
-[Features](#made-for-listening) · [Install](#pick-your-player) · [Online links](#youtube--soundcloud) · [Complete guide](docs/GUIDE.md) · [Releases](https://github.com/daronthedragon/wave-player/releases)
+[New in 2.0](#your-collection-in-focus) · [Features](#made-for-listening) · [Install](#pick-your-player) · [Online links](#youtube--soundcloud) · [Complete guide](docs/GUIDE.md) · [Releases](https://github.com/daronthedragon/wave-player/releases)
 
 </div>
 
@@ -22,6 +22,22 @@ persistent playlists, and a place for the files you already love.
 <a href="https://daronthedragon.github.io/wave-player/">
   <img src="docs/player-preview.png" alt="WAVE's live player: a dark XMB-style music library with a flowing silver wave, category icons, and playback controls" width="100%">
 </a>
+
+## Your collection, in focus
+
+**WAVE 2.0 brings a new library workspace to the familiar XMB.** Open **Library** to find a track, build a collection, or line up the rest of your evening.
+
+<a href="https://daronthedragon.github.io/wave-player/">
+  <img src="docs/library-preview.png" alt="WAVE 2.0 playlist workspace with search, collection controls, track ordering, playback speed, and a sleep timer" width="100%">
+</a>
+
+| Find your next track | Shape your session |
+| :--- | :--- |
+| **Search & sort** — title, artist, album, recently added, or duration. | **Editable queue** — play next, add selected tracks, reorder upcoming tracks, and remove queue entries. |
+| **Quick filters** — audio, video, favorites, and files saved offline. | **Remember your place** — reopen at your saved track and position, ready for you to press Play. |
+| **Playlist tools** — select several tracks, rename, duplicate, reorder, or delete collections. | **Speed & sleep** — choose 0.5–2× playback and a 15, 30, 60, or 90 minute pause timer. |
+
+Your existing saved media and playlists stay in place when updating. Queue and playback preferences are remembered on this device when storage is available. The sleep timer lasts for the current session; browser or OS suspension can delay it. [Explore the new controls →](docs/GUIDE.md#library-and-playlists)
 
 ## Made for listening
 
@@ -69,8 +85,9 @@ Downloads support individual public tracks, with a **64 MiB** limit and **three-
 ## Settle in
 
 1. **Add your media** with the file picker or drag and drop.
-2. **Build a playlist** from a track’s **△ Options → Add to playlist** menu.
-3. **Open a visualizer** and choose Flow, Spectrum, or Orbit.
+2. **Open Library**, select tracks, and add them to an existing or new playlist.
+3. **Shape the queue**, choose your playback speed, and set a sleep timer if you want.
+4. **Open a visualizer** and choose Flow, Spectrum, or Orbit.
 
 | Control | Action |
 | :--- | :--- |

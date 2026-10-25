@@ -443,3 +443,190 @@ test('media replacement retains identity, refreshes active source and persists t
     delete globalThis.indexedDB;
   }
 });
+
+
+test('manual queue edits preserve playback, deduplicate tracks and honor Play next under shuffle', async () => {
+  const engine = new PlayerEngine();
+  await engine.addFiles([file('a.mp3'), file('b.mp3'), file('c.mp3'), file('d.mp3')]);
+  const [a, b, c, d] = engine.tracks.map(track => track.id);
+  engine.setQueue([a, b, c]);
+  await engine.play();
+  const src = engine.audio.src;
+  engine.audio.duration = 100;
+  engine.seek(37);
+  assert.equal(engine.enqueue(d), true);
+  assert.equal(engine.enqueue(b), true);
+  assert.deepEqual(engine.snapshot.queueIds, [a, c, d, b]);
+  assert.equal(engine.moveQueueItem(b, -1), true);
+  assert.deepEqual(engine.snapshot.queueIds, [a, c, b, d]);
+  assert.equal(engine.moveQueueItem(c, -1), false, 'upcoming items cannot move before the playing item');
+  assert.equal(engine.moveQueueItem(d, 1), false);
+  assert.equal(engine.removeQueueItem(a), false, 'removing current playback is not a queue edit');
+  assert.equal(engine.enqueue(a), false);
+  assert.equal(engine.playNext(a), false);
+  assert.equal(engine.playNext('missing'), false);
+  assert.equal(engine.enqueue('missing'), false);
+  assert.equal(engine.removeQueueItem(c), true);
+  assert.equal(engine.tracks.length, 4, 'queue removal leaves the library intact');
+  assert.equal(engine.audio.src, src);
+  assert.equal(engine.audio.currentTime, 37);
+  assert.equal(engine.snapshot.playing, true);
+  engine.setShuffle(true);
+  assert.equal(engine.playNext(d), true);
+  assert.equal(engine.playNext(d), true);
+  assert.deepEqual(engine.snapshot.queueIds, [a, d, b]);
+  engine.next();
+  assert.equal(engine.current.id, d, 'explicit Play next wins over random shuffle');
+  engine.dispose();
+});
+
+test('queue, selected track, position and playback preferences survive reopening without autoplay', async () => {
+  const originalStorage = globalThis.localStorage;
+  const settings = new Map();
+  globalThis.localStorage = { getItem: key => settings.get(key) || null, setItem: (key, value) => settings.set(key, value) };
+  globalThis.indexedDB = memoryIndexedDB();
+  try {
+    const original = new PlayerEngine();
+    await original.addFiles([file('first.mp3'), file('second.mp3'), file('third.mp3')]);
+    const [a, b, c] = original.tracks.map(track => track.id);
+    original.setQueue([c, b]);
+    original.select(b);
+    original.audio.duration = 180;
+    original.seek(43.5);
+    original.setPlaybackRate(1.5);
+    original.setVolume(0.25);
+    original.setShuffle(true);
+    original.setRepeat('all');
+    original.dispose();
+
+    const reopened = new PlayerEngine();
+    await reopened.init();
+    assert.deepEqual(reopened.snapshot.queueIds, [c, b]);
+    assert.equal(reopened.current.id, b);
+    assert.equal(reopened.snapshot.currentTime, 43.5, 'pending position is visible while metadata loads');
+    assert.equal(reopened.snapshot.playing, false);
+    assert.equal(reopened.audio.playbackRate, 1.5);
+    assert.equal(reopened.audio.defaultPlaybackRate, 1.5);
+    assert.equal(reopened.snapshot.volume, 0.25);
+    assert.equal(reopened.shuffle, true);
+    assert.equal(reopened.repeat, 'all');
+    reopened.audio.duration = 180;
+    reopened.audio.dispatchEvent(new Event('loadedmetadata'));
+    assert.equal(reopened.audio.currentTime, 43.5);
+    assert.equal(reopened.snapshot.playing, false, 'metadata restore never starts playback');
+    await reopened.remove(b);
+    assert.equal(reopened.current.id, c);
+    reopened.dispose();
+
+    const afterRemoval = new PlayerEngine();
+    await afterRemoval.init();
+    assert.deepEqual(afterRemoval.snapshot.queueIds, [c]);
+    assert.equal(afterRemoval.current.id, c);
+    assert.equal(afterRemoval.tracks.some(track => track.id === a), true);
+    afterRemoval.dispose();
+  } finally {
+    globalThis.localStorage = originalStorage;
+    delete globalThis.indexedDB;
+  }
+});
+
+test('resume metadata is sanitized and changing tracks cancels a pending resume seek', async () => {
+  const originalStorage = globalThis.localStorage;
+  const settings = new Map();
+  globalThis.localStorage = { getItem: key => settings.get(key) || null, setItem: (key, value) => settings.set(key, value) };
+  globalThis.indexedDB = memoryIndexedDB();
+  try {
+    const initial = new PlayerEngine();
+    await initial.addFiles([file('a.mp3'), file('b.mp3')]);
+    const [a, b] = initial.tracks.map(track => track.id);
+    initial.dispose();
+    settings.set('waveform-player-settings', JSON.stringify({ currentId: a, currentTime: 900, queueIds: [b, 'missing', a, a], playbackRate: 8 }));
+    const resumed = new PlayerEngine();
+    await resumed.init();
+    assert.deepEqual(resumed.snapshot.queueIds, [b, a]);
+    assert.equal(resumed.snapshot.playbackRate, 2);
+    resumed.select(b, false);
+    resumed.audio.duration = 120;
+    resumed.audio.dispatchEvent(new Event('loadedmetadata'));
+    assert.equal(resumed.audio.currentTime, 0, 'old pending seek cannot leak into another track');
+    resumed.setPlaybackRate(0.2);
+    assert.equal(resumed.snapshot.playbackRate, 0.5);
+    resumed.dispose();
+    settings.set('waveform-player-settings', 'null');
+    const legacy = new PlayerEngine();
+    await legacy.init();
+    assert.equal(legacy.snapshot.playbackRate, 1);
+    assert.equal(legacy.snapshot.playing, false);
+    legacy.dispose();
+  } finally {
+    globalThis.localStorage = originalStorage;
+    delete globalThis.indexedDB;
+  }
+});
+
+test('sleep timer pauses at its deadline, supports cancellation and is disposed safely', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 100_000 });
+  const engine = new PlayerEngine();
+  await engine.addFiles([file('sleep.mp3')]);
+  await engine.play();
+  let sleeps = 0;
+  engine.addEventListener('sleep', () => sleeps++);
+  engine.setSleepTimer(10);
+  assert.equal(engine.snapshot.sleepUntil, 700_000);
+  t.mock.timers.tick(599_999);
+  assert.equal(engine.snapshot.playing, true);
+  t.mock.timers.tick(1);
+  assert.equal(engine.snapshot.playing, false);
+  assert.equal(engine.snapshot.sleepUntil, 0);
+  assert.equal(sleeps, 1);
+  await engine.play();
+  engine.setSleepTimer(1);
+  engine.setSleepTimer(0);
+  t.mock.timers.tick(60_000);
+  assert.equal(engine.snapshot.playing, true);
+  assert.equal(sleeps, 1);
+  engine.setSleepTimer(1);
+  engine.dispose();
+  t.mock.timers.tick(60_000);
+  assert.equal(sleeps, 1);
+});
+
+
+test('Play next priority survives reopening with shuffle enabled', async () => {
+  const originalStorage = globalThis.localStorage;
+  const settings = new Map();
+  globalThis.localStorage = { getItem: key => settings.get(key) || null, setItem: (key, value) => settings.set(key, value) };
+  globalThis.indexedDB = memoryIndexedDB();
+  try {
+    const initial = new PlayerEngine();
+    await initial.addFiles([file('a.mp3'), file('b.mp3'), file('c.mp3')]);
+    const expected = initial.tracks[2].id;
+    initial.setShuffle(true);
+    initial.playNext(expected);
+    initial.dispose();
+    const reopened = new PlayerEngine();
+    await reopened.init();
+    assert.equal(reopened.snapshot.playing, false);
+    reopened.next();
+    assert.equal(reopened.current.id, expected);
+    reopened.dispose();
+  } finally {
+    globalThis.localStorage = originalStorage;
+    delete globalThis.indexedDB;
+  }
+});
+
+test('reordering a Play next request follows visible queue order with shuffle off', async () => {
+  const engine = new PlayerEngine();
+  await engine.addFiles([file('a.mp3'), file('b.mp3'), file('c.mp3'), file('d.mp3')]);
+  const [a, b, c, d] = engine.tracks.map(track => track.id);
+  engine.playNext(d);
+  assert.deepEqual(engine.snapshot.queueIds, [a, d, b, c]);
+  engine.moveQueueItem(d, 1);
+  assert.deepEqual(engine.snapshot.queueIds, [a, b, d, c]);
+  engine.next();
+  assert.equal(engine.current.id, b, 'moving the requested track down must not leave an invisible priority');
+  engine.next();
+  assert.equal(engine.current.id, d);
+  engine.dispose();
+});
