@@ -45,6 +45,9 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm test
           npm run sync
+          mkdir -p build
+          swiftc native/App/App/WaveSoundCloudParser.swift tests/SoundCloudParserTests.swift -o build/soundcloud-parser-tests
+          build/soundcloud-parser-tests
           xcodebuild -version
       - name: Build iPhone simulator app
         working-directory: ios

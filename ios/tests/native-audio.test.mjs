@@ -18,10 +18,10 @@ function fixture({ protocol = 'capacitor:', framed = false, size = 3, malformed 
   }, File, DOMException, crypto, atob, Uint8Array, setTimeout, clearTimeout });
   return { run: window.WaveIOSImportAudio, calls };
 }
-test('import bridge is native top-frame only and advertises YouTube only', () => {
+test('import bridge is native top-frame only and advertises its native providers', () => {
   assert.equal(fixture({ protocol: 'https:' }).run, undefined);
   assert.equal(fixture({ framed: true }).run, undefined);
-  assert.equal(fixture().run.providers.join(','), 'youtube');
+  assert.equal(fixture().run.providers.join(','), 'youtube,soundcloud');
 });
 test('native audio returns exact bytes as a File then cleans temporary audio', async () => {
   const f = fixture();

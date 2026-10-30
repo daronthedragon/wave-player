@@ -121,7 +121,7 @@ The Android APK also includes the GPL-3.0 youtubedl-android runtime. The combine
 
 ## MP3 saving and the iOS application
 
-In **Library**, choose the down-arrow beside a track, or use **Track options → Save as MP3**. The converter encodes the selected audio as MP3 at 192 kbps. A video must contain an audio stream. The original file remains unchanged.
+In **Library**, choose the down-arrow beside a track, or use **Track options → Save as MP3**. Existing MP3 files keep their original bytes and quality without loading the converter. Other audio is encoded as MP3 at 192 kbps. A video must contain an audio stream. The original file remains unchanged.
 
 - **Keep MP3 in WAVE:** add a separate MP3 to the local library. It can be played offline and placed in playlists when device storage succeeds.
 - **Download MP3:** save a file through the browser download manager. This is offered in the browser, not the Android WebView.

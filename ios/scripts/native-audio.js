@@ -44,5 +44,5 @@
       busy = false;
     }
   };
-  window.WaveIOSImportAudio.providers = ['youtube'];
+  window.WaveIOSImportAudio.providers = ['youtube', 'soundcloud'];
 })();

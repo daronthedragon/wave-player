@@ -1,5 +1,5 @@
 /* Bump this version whenever a new release changes the offline shell. */
-const CACHE_NAME = 'wave-shell-v12';
+const CACHE_NAME = 'wave-shell-v13';
 const BASE = new URL('./', self.location.href);
 const SHELL = [
   './', './index.html', './manifest.webmanifest',

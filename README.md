@@ -13,7 +13,7 @@ an editable play queue, and a place for the files you already love.
 
 **No WAVE account · Local media stays local · No Electron**
 
-[New in 2.0](#your-collection-in-focus) · [Features](#made-for-listening) · [Install](#pick-your-player) · [Online links](#youtube--soundcloud) · [Complete guide](docs/GUIDE.md) · [Releases](https://github.com/daronthedragon/wave-player/releases)
+[New in 2.1](#pocket-player-real-mp3-files) · [Features](#made-for-listening) · [Install](#pick-your-player) · [Online links](#youtube--soundcloud) · [Complete guide](docs/GUIDE.md) · [Releases](https://github.com/daronthedragon/wave-player/releases)
 
 </div>
 
@@ -27,11 +27,19 @@ an editable play queue, and a place for the files you already love.
 
 **WAVE 2.1 adds an MP3 saver and an iPhone/iPad app target.** Choose the down-arrow beside a track in Library, or **Track options → Save as MP3**. WAVE keeps existing MP3s at their original quality, and encodes other audio as real 192 kbps MP3 on your device. Keep the copy in WAVE for offline replay and playlists, download it, or use the file-sharing sheet where supported. The original stays unchanged.
 
-The browser’s initial offline shell is about **415 KB** of source assets. The **32.3 MB** converter is fetched only when a file needs MP3 encoding or format conversion, then cached for reuse. The portable HTML and native app bundle the converter so they can convert offline from first launch.
+The browser’s initial offline shell is about **418 KB** of source assets. The **32.3 MB** converter is fetched only when a file needs MP3 encoding or format conversion, then cached for reuse. The portable HTML and native app bundle the converter so they can convert offline from first launch.
 
-**iOS application:** a dedicated Capacitor/WKWebView project and macOS build workflow are in [ios/](ios/README.md). The iPhone build is unsigned and **must be signed before installation**; there is no public TestFlight or App Store release yet. Safari’s **Add to Home Screen** remains available immediately. The native iOS target includes an experimental on-device YouTube importer; live provider success is being verified. SoundCloud importing is not available in this iOS build. Neither capability changes the static website’s restrictions.
+**iOS application:** a dedicated Capacitor/WKWebView project and macOS build workflow are in [ios/](ios/README.md). The iPhone build is unsigned and **must be signed before installation**; there is no public TestFlight or App Store release yet. Safari’s **Add to Home Screen** remains available immediately. The native iOS target includes experimental on-device YouTube and public SoundCloud importers. Native provider verification is recorded separately from successful compilation. These capabilities do not change the static website’s restrictions.
 
 MP3 export works on audio already imported or retrieved into WAVE. It does not make an unplayable YouTube/SoundCloud bookmark downloadable. See the [provider limitations](#youtube--soundcloud) before choosing a platform.
+
+![Real MP3 conversion and offline library saving in the live WAVE website](docs/mp3-saver-preview.png)
+
+<details>
+<summary><strong>Inside the native iPhone build</strong> — actual simulator capture</summary>
+<p align="center"><img src="docs/iphone-preview.png" alt="WAVE running in the iPhone simulator with the XMB library and playback controls" width="280"></p>
+<p>The app compiled and launched in an iPhone simulator. A physical iPhone still needs Apple signing; simulator launch does not verify provider downloads or native sharing.</p>
+</details>
 
 ## Your collection, in focus
 
@@ -66,6 +74,7 @@ Your existing saved media and playlists stay in place when updating. Queue and p
 | :--- | :--- | :--- |
 | **Web** | [Open WAVE](https://daronthedragon.github.io/wave-player/) | Import audio/video and save playlists in this browser. |
 | **iPhone / iPad** | Open the website in Safari → **Share → Add to Home Screen** | An installable web app. Open online once to cache the player. |
+| **Native iOS build** | [Build and signing instructions](ios/README.md) | Bundled iPhone app with native importing and file sharing. Requires Apple signing; not an App Store/TestFlight release. |
 | **Android APK** | [Download the APK](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.apk) | Bundled offline player, native file picker, and on-device provider audio importer. |
 | **Android web app** | Open the website in Chrome → **Install / Add to Home screen** | The web version in its own launcher; capabilities differ from the APK. |
 | **Desktop / portable** | [Download the HTML](https://github.com/daronthedragon/wave-player/releases/latest/download/WAVE-Player.html) | One approximately 43 MB file. Double-click to open in your browser. |

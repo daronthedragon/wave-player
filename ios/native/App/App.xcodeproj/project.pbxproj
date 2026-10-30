@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        ABCDEF0123456789ABCDEF11 /* WaveSoundCloudParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789ABCDEF10 /* WaveSoundCloudParser.swift */; };
+        ABCDEF0123456789ABCDEF09 /* WaveSoundCloud.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789ABCDEF08 /* WaveSoundCloud.swift */; };
         ABCDEF0123456789ABCDEF03 /* WaveAudioPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789ABCDEF04 /* WaveAudioPlugin.swift */; };
         ABCDEF0123456789ABCDEF05 /* YouTubeKit in Frameworks */ = {isa = PBXBuildFile; productRef = ABCDEF0123456789ABCDEF06 /* YouTubeKit */; };
 		ABCDEF0123456789ABCDEF01 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789ABCDEF02 /* PrivacyInfo.xcprivacy */; };
@@ -22,6 +24,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        ABCDEF0123456789ABCDEF10 /* WaveSoundCloudParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveSoundCloudParser.swift; sourceTree = "<group>"; };
+        ABCDEF0123456789ABCDEF08 /* WaveSoundCloud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveSoundCloud.swift; sourceTree = "<group>"; };
         ABCDEF0123456789ABCDEF04 /* WaveAudioPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveAudioPlugin.swift; sourceTree = "<group>"; };
 		ABCDEF0123456789ABCDEF02 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -72,6 +76,8 @@
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
                 ABCDEF0123456789ABCDEF04 /* WaveAudioPlugin.swift */,
+                ABCDEF0123456789ABCDEF10 /* WaveSoundCloudParser.swift */,
+                ABCDEF0123456789ABCDEF08 /* WaveSoundCloud.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -172,6 +178,8 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
                 ABCDEF0123456789ABCDEF03 /* WaveAudioPlugin.swift in Sources */,
+                ABCDEF0123456789ABCDEF11 /* WaveSoundCloudParser.swift in Sources */,
+                ABCDEF0123456789ABCDEF09 /* WaveSoundCloud.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -31,11 +31,13 @@ To distribute through TestFlight or the App Store, the owner must create the mat
 
 The native **Share / Save to Files** action writes a disposable MP3 into the app cache and opens Apple’s share sheet through official Capacitor Filesystem/Share plugins. Export is limited to 64 MiB and the temporary file is deleted after the share sheet closes. Physical-device sharing remains to be verified after signing. No native background-audio service is implemented, and uninterrupted playback while locked or suspended is not promised.
 
-## On-device YouTube importing
+## On-device YouTube and SoundCloud importing
 
 The native target includes [YouTubeKit 0.4.10](https://github.com/alexeichhorn/YouTubeKit/tree/0.4.10), pinned through Swift Package Manager. WAVE explicitly enables only its local extraction method; the optional hosted fallback is never enabled. Public individual videos are resolved on the phone and their audio-only M4A stream is downloaded with URLSession. The downloaded file enters WAVE's existing library/conversion flow. A download must contain decodable audio, be at most 64 MiB, and be no longer than two hours. MP3 export is an additional local conversion.
 
-The importer checks YouTube input hosts and Google video CDN download/redirect hosts, streams downloads to the app cache, transfers bounded 256 KiB chunks to the player, and cleans temporary files after import. Cancellation and a three-minute JavaScript timeout are supported. Provider restrictions and changes can still prevent extraction; compile success alone is not proof of live playback. SoundCloud importing is not currently implemented in this iOS target. The website/PWA cannot use the native bridge.
+The importer checks YouTube input hosts and Google video CDN download/redirect hosts, streams downloads to the app cache, transfers bounded 256 KiB chunks to the player, and cleans temporary files after import. Cancellation and a three-minute JavaScript timeout are supported. Provider restrictions and changes can still prevent extraction; compile success alone is not proof of live playback. The website/PWA cannot use the native bridge.
+
+Public SoundCloud artist/track links use a separate native resolver. It reads the public player metadata and downloads full-length, unencrypted AAC fragmented-MP4 playlists directly from SoundCloud's media CDN. The initialization fragment and bounded segments are assembled on disk, then AVURLAsset verifies audio tracks and duration before import. Private, paid, preview, encrypted, live, discontinuous, byte-range and unsupported playlist formats are rejected. Limits are 64 MiB, two hours and 720 segments. This route has no hosted companion or Python runtime. The reference `forss/flickermood` assembly was locally verified as a 213.886-second AAC file; native simulator validation is recorded separately in CI.
 
 YouTubeKit is MIT licensed; its notice is in `licenses/YouTubeKit-MIT.txt` and bundled into the app's web resources. The app does not include the Android Python runtime.
 
@@ -48,7 +50,9 @@ The **iPhone and iPad app** workflow builds the simulator app, launches it in an
 - `iphone-launch.png` — launch evidence to inspect alongside build logs; it is not a claim that file import, background audio, or provider extraction passed on a physical phone.
 - Build logs and SHA-256 checksum.
 
-A Debug simulator launch with `-wave-audio-diagnostic` runs an explicit live YouTube resolve/download probe and checks the downloaded audio using AVURLAsset. It writes `Library/Caches/wave-ios-diagnostic.json` inside the app data container. A provider failure is recorded as a failure, not treated as successful playback. This argument has no effect in Release builds.
+A Debug simulator launch with `-wave-audio-diagnostic` runs explicit live YouTube and SoundCloud resolve/download probes in parallel and checks downloaded audio using AVURLAsset. It writes separate provider results to `Library/Caches/wave-ios-diagnostic.json` inside the app data container. A provider failure is recorded as a failure, not treated as successful playback. This argument has no effect in Release builds.
+
+The Foundation-only SoundCloud parser tests can run on a Mac with `swiftc native/App/App/WaveSoundCloudParser.swift tests/SoundCloudParserTests.swift -o build/soundcloud-parser-tests && build/soundcloud-parser-tests` from `ios/`.
 
 Run `npm run sync` after changing the root web app. Generated web assets and dependencies stay ignored; native Swift/Xcode sources, config, and dependency lockfile are committed.
 
