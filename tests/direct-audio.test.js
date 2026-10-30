@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { audioServerURL, fetchAudioFile, hasNativeAudio, fetchNativeAudioFile } from '../src/direct-audio.js';
+import { audioServerURL, fetchAudioFile, hasNativeAudio, nativeAudioSupports, fetchNativeAudioFile } from '../src/direct-audio.js';
 
 test('server addresses require HTTPS except loopback from local test pages', () => {
   assert.equal(audioServerURL('https://audio.example.com/', 'https:'), 'https://audio.example.com');
@@ -51,6 +51,35 @@ function nativeBridge(t, respond) {
   t.after(() => { delete globalThis.WaveNativeAudio; });
   return { bridge, messages };
 }
+
+test('iOS native importer returns retained audio without fetching a remote browser URL', async t => {
+  const source = new File([new Uint8Array([1, 2, 3])], 'Track.m4a', { type: 'audio/mp4', lastModified: 0 });
+  const signal = new AbortController().signal;
+  globalThis.WaveIOSImportAudio = async (url, options) => {
+    assert.equal(url, 'https://www.youtube.com/watch?v=jNQXAC9IVRw');
+    assert.equal(options.signal, signal);
+    return source;
+  };
+  t.after(() => { delete globalThis.WaveIOSImportAudio; });
+  t.mock.method(globalThis, 'fetch', () => { throw new Error('Must use native importer'); });
+  assert.equal(hasNativeAudio(), true);
+  assert.equal(nativeAudioSupports({ provider: 'youtube' }), true);
+  assert.equal(nativeAudioSupports({ provider: 'soundcloud' }), false);
+  globalThis.WaveIOSImportAudio.providers = ['youtube', 'soundcloud'];
+  assert.equal(nativeAudioSupports({ provider: 'soundcloud' }), true);
+  assert.equal(await fetchNativeAudioFile({ url: 'https://www.youtube.com/watch?v=jNQXAC9IVRw' }, signal), source);
+});
+
+test('iOS import rejects empty, nonaudio, and aborted results', async t => {
+  t.after(() => { delete globalThis.WaveIOSImportAudio; });
+  for (const file of [null, new File([], 'empty.mp3', { type: 'audio/mpeg' }), new File(['page'], 'page.html', { type: 'text/html' })]) {
+    globalThis.WaveIOSImportAudio = async () => file;
+    await assert.rejects(fetchNativeAudioFile({ url: 'https://soundcloud.com/a/b' }), /supported audio file/);
+  }
+  const controller = new AbortController();
+  globalThis.WaveIOSImportAudio = async () => { controller.abort(); return new File(['abc'], 'a.mp3', { type: 'audio/mpeg' }); };
+  await assert.rejects(fetchNativeAudioFile({ url: 'https://soundcloud.com/a/b' }, controller.signal), { name: 'AbortError' });
+});
 
 test('native import downloads only through the local app endpoint and preserves file identity', async t => {
   assert.equal(hasNativeAudio(), false);

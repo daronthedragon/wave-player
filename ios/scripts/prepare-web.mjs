@@ -14,8 +14,10 @@ await mkdir(output, { recursive: true });
 for (const name of entries) await cp(path.join(root, 'dist', name), path.join(output, name), { recursive: true });
 await cp(path.join(ios, 'node_modules/@capacitor/core/dist/capacitor.js'), path.join(output, 'src/ios-capacitor.js'));
 await cp(path.join(ios, 'scripts/native-share.js'), path.join(output, 'src/ios-share.js'));
+await cp(path.join(ios, 'scripts/native-audio.js'), path.join(output, 'src/ios-audio.js'));
+await cp(path.join(ios, 'licenses'), path.join(output, 'licenses'), { recursive: true });
 const html = await readFile(path.join(output, 'index.html'), 'utf8');
-await writeFile(path.join(output, 'index.html'), html.replace('</head>', '<script src="src/ios-capacitor.js"></script><script src="src/ios-share.js"></script></head>'));
+await writeFile(path.join(output, 'index.html'), html.replace('</head>', '<script src="src/ios-capacitor.js"></script><script src="src/ios-share.js"></script><script src="src/ios-audio.js"></script></head>'));
 // Preserve original license notices, and avoid bundling the 43 MB portable HTML.
 const version = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).version;
 if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('iOS requires a numeric release version.');

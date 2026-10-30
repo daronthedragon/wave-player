@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        ABCDEF0123456789ABCDEF03 /* WaveAudioPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789ABCDEF04 /* WaveAudioPlugin.swift */; };
+        ABCDEF0123456789ABCDEF05 /* YouTubeKit in Frameworks */ = {isa = PBXBuildFile; productRef = ABCDEF0123456789ABCDEF06 /* YouTubeKit */; };
 		ABCDEF0123456789ABCDEF01 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = ABCDEF0123456789ABCDEF02 /* PrivacyInfo.xcprivacy */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
@@ -20,6 +22,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        ABCDEF0123456789ABCDEF04 /* WaveAudioPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveAudioPlugin.swift; sourceTree = "<group>"; };
 		ABCDEF0123456789ABCDEF02 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
@@ -40,6 +43,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+                ABCDEF0123456789ABCDEF05 /* YouTubeKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -67,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
+                ABCDEF0123456789ABCDEF04 /* WaveAudioPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -98,6 +103,7 @@
 			name = App;
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
+                ABCDEF0123456789ABCDEF06 /* YouTubeKit */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -130,6 +136,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+                ABCDEF0123456789ABCDEF07 /* YouTubeKit */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -164,6 +171,7 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+                ABCDEF0123456789ABCDEF03 /* WaveAudioPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,7 +380,20 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+        ABCDEF0123456789ABCDEF07 /* YouTubeKit */ = {
+            isa = XCRemoteSwiftPackageReference;
+            repositoryURL = "https://github.com/alexeichhorn/YouTubeKit.git";
+            requirement = {kind = exactVersion; version = 0.4.10; };
+        };
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+        ABCDEF0123456789ABCDEF06 /* YouTubeKit */ = {
+            isa = XCSwiftPackageProductDependency;
+            package = ABCDEF0123456789ABCDEF07 /* YouTubeKit */;
+            productName = YouTubeKit;
+        };
 		4D22ABE82AF431CB00220026 /* CapApp-SPM */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;

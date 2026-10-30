@@ -1,14 +1,30 @@
 const MAX_AUDIO_BYTES = 64 * 1024 * 1024;
 
 export function hasNativeAudio() {
+  return typeof globalThis.WaveIOSImportAudio === 'function' || typeof globalThis.WaveNativeAudio?.postMessage === 'function';
+}
+
+export function nativeAudioSupports(link) {
+  if (typeof globalThis.WaveIOSImportAudio === 'function') {
+    return (globalThis.WaveIOSImportAudio.providers || ['youtube']).includes(link?.provider);
+  }
   return typeof globalThis.WaveNativeAudio?.postMessage === 'function';
 }
 
 // Android exposes this listener only to the bundled player's HTTPS main frame.
 // It accepts provider links, never commands, file paths, or arbitrary fetch URLs.
 export async function fetchNativeAudioFile(link, signal) {
+  signal?.throwIfAborted();
+  if (typeof globalThis.WaveIOSImportAudio === 'function') {
+    const file = await globalThis.WaveIOSImportAudio(link.url, { signal });
+    signal?.throwIfAborted();
+    if (!(file instanceof File) || !file.size || file.size > MAX_AUDIO_BYTES || !/^audio\//.test(file.type)) {
+      throw new Error('The iPhone did not return a supported audio file within the 64 MB limit.');
+    }
+    return file;
+  }
   const bridge = globalThis.WaveNativeAudio;
-  if (!hasNativeAudio()) throw new Error('On-device link downloads require the Android APK.');
+  if (!hasNativeAudio()) throw new Error('On-device link downloads require a supported native WAVE app.');
   signal?.throwIfAborted();
   const id = crypto.randomUUID();
   const result = await new Promise((resolve, reject) => {

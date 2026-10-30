@@ -1,5 +1,5 @@
 import { parseMediaLink, loadSavedLinks } from './online-links.js?v=2.1.0';
-import { audioServerURL, fetchAudioFile, hasNativeAudio, fetchNativeAudioFile } from './direct-audio.js?v=2.1.0';
+import { audioServerURL, fetchAudioFile, hasNativeAudio, nativeAudioSupports, fetchNativeAudioFile } from './direct-audio.js?v=2.1.0';
 
 export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSaved, getPlaylists, onChange, notify }) {
   const $ = selector => document.querySelector(selector);
@@ -18,11 +18,12 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
   $('#native-audio-hint').hidden = !nativeAudio;
   $('#browser-audio-hint').hidden = nativeAudio;
   const providerName = link => link.provider === 'youtube' ? 'YouTube' : 'SoundCloud';
-  const canRetrieveAudio = () => nativeAudio || Boolean(server);
-  function updateCapabilities() {
-    const available = canRetrieveAudio();
+  const canRetrieveAudio = link => (nativeAudio && (!link || nativeAudioSupports(link))) || Boolean(server);
+  function updateCapabilities(link = null) {
+    const available = canRetrieveAudio(link);
     $('#link-capability').textContent = available
-      ? 'Load audio from a YouTube video or SoundCloud track into WAVE’s music player.'
+      ? 'Load a supported link into WAVE’s music player and save it on this device. Provider restrictions can prevent a download.'
+      : nativeAudio ? 'This app does not support downloading this provider yet. Save the link or import an audio file.'
       : 'YouTube and SoundCloud links are bookmarks in the website and Home Screen app. To play audio here, import an audio file. The Android APK can download supported links on the phone.';
     $('#link-submit').textContent = available ? 'Load audio' : 'Save link';
     $('#link-destination').hidden = !available;
@@ -30,6 +31,11 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
     $('#online-import-file').hidden = available;
   }
   updateCapabilities();
+  $('#media-link').addEventListener('input', () => {
+    let link;
+    try { link = parseMediaLink($('#media-link').value); } catch {}
+    updateCapabilities(link);
+  });
   function persist() {
     try { localStorage.setItem('wave-online-links', JSON.stringify(links)); }
     catch { notify('Link saved for this session. Device storage is unavailable.'); }
@@ -62,9 +68,11 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
     $('#online-source').href = link.url;
     $('#online-source').textContent = 'Open in ' + providerName(link);
     $('#online-player-dialog').showModal();
-    updateCapabilities();
-    if (canRetrieveAudio()) void loadAudio();
-    else $('#online-status').textContent = 'Link saved. This website and its Home Screen app cannot retrieve ' + providerName(link) + ' audio directly. Import an audio file to listen in WAVE, or open the original link.';
+    updateCapabilities(link);
+    if (canRetrieveAudio(link)) void loadAudio();
+    else $('#online-status').textContent = nativeAudio
+      ? 'Link saved. On-device ' + providerName(link) + ' downloading is not available in this app yet. Import an audio file to listen in WAVE.'
+      : 'Link saved. This website and its Home Screen app cannot retrieve ' + providerName(link) + ' audio directly. Import an audio file to listen in WAVE, or open the original link.';
   }
   async function loadAudio() {
     request?.abort();
@@ -77,11 +85,12 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
     button.disabled = true;
     const timeout = setTimeout(() => controller.abort(new Error('Loading timed out. Try a shorter track.')), 210000);
     try {
-      if (!nativeAudio && !server) throw new Error('Use the Android APK to retrieve this link on your phone, or import an audio file. The GitHub web app cannot retrieve provider audio directly.');
-      status.textContent = nativeAudio
+      const useNative = nativeAudioSupports(link);
+      if (!useNative && !server) throw new Error('This version cannot retrieve that provider link on-device. Import an audio file to play and save it.');
+      status.textContent = useNative
         ? 'Downloading on this phone… Keep WAVE open. Close this window to cancel.'
         : 'Loading audio… You can close this window to cancel. Longer tracks take more time.';
-      const file = nativeAudio
+      const file = useNative
         ? await fetchNativeAudioFile(link, controller.signal)
         : await fetchAudioFile(link, audioServerURL(server), controller.signal);
       if (controller.signal.aborted || current !== link) return;
@@ -157,8 +166,8 @@ export function createOnlineLibrary({ pauseLocal, playAudio, playSaved, findSave
       ...links.map(link => {
         const saved = findSaved(link.id);
         return { id: link.id, title: saved?.title || link.title,
-          subtitle: providerName(link) + (saved ? saved.storageState === 'persisted' ? ' · Saved on device' : ' · This session' : canRetrieveAudio() ? '' : ' · Saved link'),
-          description: saved ? 'Play the saved audio immediately. No server needed.' : canRetrieveAudio() ? 'Load audio into Music with WAVE’s player and visualizer.' : 'Saved bookmark. Open the original link, or import an audio file to listen in WAVE.',
+          subtitle: providerName(link) + (saved ? saved.storageState === 'persisted' ? ' · Saved on device' : ' · This session' : canRetrieveAudio(link) ? '' : ' · Saved link'),
+          description: saved ? 'Play the saved audio immediately. No server needed.' : canRetrieveAudio(link) ? 'Load audio into Music with WAVE’s player and visualizer.' : 'Saved bookmark. Open the original link, or import an audio file to listen in WAVE.',
           icon: 'music', action: () => open(link) };
       })
     ],

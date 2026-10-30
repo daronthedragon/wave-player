@@ -1,3 +1,15 @@
+// Preserve an existing MP3 rather than loading the converter and re-encoding it.
+export async function prepareMP3(source, { transcoder, fileName, signal }) {
+  signal?.throwIfAborted();
+  const header = new Uint8Array(await source.slice(0, 4).arrayBuffer());
+  const tagged = header[0] === 0x49 && header[1] === 0x44 && header[2] === 0x33 && header[3] >= 2 && header[3] <= 4;
+  const frame = header[0] === 0xff && (header[1] & 0xe0) === 0xe0 && (header[1] & 0x18) !== 0x08 && (header[1] & 6) === 2 && (header[2] >> 4) > 0 && (header[2] >> 4) < 15 && (header[2] & 12) !== 12;
+  const original = (source.type === 'audio/mpeg' || /\.mp3$/i.test(fileName || '')) && (tagged || frame);
+  signal?.throwIfAborted();
+  const blob = original ? source : await transcoder.convert(source, { kind: 'audio', audioFormat: 'mp3', fileName, signal });
+  return { blob, original };
+}
+
 export function createMediaSaver({ engine, transcoder, notify }) {
   const dialog = document.createElement('dialog');
   dialog.id = 'media-saver';
@@ -61,12 +73,12 @@ export function createMediaSaver({ engine, transcoder, notify }) {
         const source = await engine.getFile(id);
         request.signal.throwIfAborted();
         if (!source) throw new Error('The source file is unavailable. Import it again.');
-        const output = await transcoder.convert(source, { kind: 'audio', audioFormat: 'mp3', fileName: track.fileName, signal: request.signal });
+        const output = await prepareMP3(source, { transcoder, fileName: track.fileName, signal: request.signal });
         request.signal.throwIfAborted();
         const name = `${track.artist || 'WAVE'} - ${track.title || 'Track'}`.replace(/[\u0000-\u001f<>:"/\\|?*]/g, '').slice(0, 150).trim();
-        file = new File([output], name + '.mp3', { type: 'audio/mpeg', lastModified: 0 });
+        file = new File([output.blob], name + '.mp3', { type: 'audio/mpeg', lastModified: 0 });
         $('#save-progress').hidden = true; $('#save-ready').hidden = false;
-        $('#save-file-info').textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB · MP3 / 192 kbps`;
+        $('#save-file-info').textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB · MP3 / ${output.original ? 'original quality' : '192 kbps'}`;
         $('#save-progress-text').textContent = 'Your MP3 is ready. Keep it in WAVE or save a separate file.';
         $('#save-download').hidden = /WAVE(?:Android|iOS)\//.test(navigator.userAgent);
         try { $('#save-share').hidden = typeof globalThis.WaveShareMP3 !== 'function' && !navigator.canShare?.({ files: [file] }); } catch { $('#save-share').hidden = true; }
