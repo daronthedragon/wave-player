@@ -1,0 +1,91 @@
+name: iPhone and iPad app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'ios/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'vendor/**'
+      - 'index.html'
+      - 'package.json'
+      - 'scripts/build.mjs'
+      - '.github/workflows/ios.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ios/package-lock.json
+      - name: Build and verify web player
+        run: |
+          npm test
+          npm run build
+      - name: Install pinned iOS wrapper and synchronize local assets
+        working-directory: ios
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+          npm run sync
+          xcodebuild -version
+      - name: Build iPhone simulator app
+        working-directory: ios
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          xcodebuild -project native/App/App.xcodeproj -scheme App \
+            -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/simulator CODE_SIGNING_ALLOWED=NO \
+            build > artifacts/simulator-build.log 2>&1
+      - name: Launch bundled app in an iPhone simulator
+        working-directory: ios
+        run: |
+          xcrun simctl list devices available -j > artifacts/devices.json
+          DEVICE_ID=$(python3 -c 'import json; d=json.load(open("artifacts/devices.json")); print(next(x["udid"] for runtime in sorted(d["devices"], reverse=True) if ".iOS-" in runtime for x in d["devices"][runtime] if x["isAvailable"] and x["name"].startswith("iPhone")))')
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl install "$DEVICE_ID" build/simulator/Build/Products/Debug-iphonesimulator/App.app
+          xcrun simctl launch "$DEVICE_ID" io.github.daronthedragon.waveplayer
+          sleep 8
+          xcrun simctl io "$DEVICE_ID" screenshot artifacts/iphone-launch.png
+          xcrun simctl terminate "$DEVICE_ID" io.github.daronthedragon.waveplayer
+          xcrun simctl shutdown "$DEVICE_ID"
+      - name: Build unsigned iPhone app for owner signing
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild -project native/App/App.xcodeproj -scheme App \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build/device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build > artifacts/device-build.log 2>&1
+          mkdir -p build/package/Payload
+          ditto build/device/Build/Products/Release-iphoneos/App.app build/package/Payload/App.app
+          (cd build/package && zip -qr ../../artifacts/WAVE-iOS-UNSIGNED.ipa Payload)
+          ditto -c -k --keepParent build/simulator/Build/Products/Debug-iphonesimulator/App.app artifacts/WAVE-iOS-Simulator.zip
+          cp README.md artifacts/IOS-INSTALLATION.md
+          shasum -a 256 artifacts/WAVE-iOS-UNSIGNED.ipa > artifacts/WAVE-iOS-UNSIGNED.ipa.sha256
+      - name: Save iOS builds and simulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: WAVE-iOS-Unsigned-and-Simulator
+          path: ios/artifacts/
+          if-no-files-found: error

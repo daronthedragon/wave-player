@@ -1,6 +1,6 @@
-import { selectTracks, moveTrack, mergeTrackIds, collectionDuration } from './library-tools.js?v=2.0.0';
+import { selectTracks, moveTrack, mergeTrackIds, collectionDuration } from './library-tools.js?v=2.1.0';
 
-export function createLibraryWorkspace({ engine, getPlaylists, savePlaylists, getFavorites, saveFavorites, beforePlay, notify: notifyMessage, addMedia, onQueueEdit }) {
+export function createLibraryWorkspace({ engine, getPlaylists, savePlaylists, getFavorites, saveFavorites, beforePlay, notify: notifyMessage, addMedia, onQueueEdit, onExport }) {
   let persistenceWarning = false;
   const notify = message => { notifyMessage(message + (persistenceWarning ? ' Changes last for this session only; device storage is unavailable.' : '')); persistenceWarning = false; };
   const host = document.createElement('dialog');
@@ -42,7 +42,7 @@ export function createLibraryWorkspace({ engine, getPlaylists, savePlaylists, ge
         ${tab === 'library' ? `<input type="checkbox" data-select="${escape(track.id)}" aria-label="Select ${escape(track.title)}" ${selected.has(track.id) ? 'checked' : ''}>` : `<span class="track-number">${String(index + 1).padStart(2, '0')}</span>`}
         <button class="workspace-track-title" data-action="play" aria-label="Play ${escape(track.title)}"><strong>${escape(track.title)}</strong><span>${escape(track.artist)} · ${escape(track.album || (track.kind === 'video' ? 'Video' : 'Audio'))}</span></button>
         <span class="track-duration">${duration}</span><span class="storage-badge">${current && !engine.audio.paused ? 'PLAYING' : track.storageState === 'persisted' ? 'SAVED' : 'SESSION'}</span>
-        <div class="track-row-actions"><button data-action="favorite" aria-label="${getFavorites().has(track.id) ? 'Unfavorite' : 'Favorite'} ${escape(track.title)}" aria-pressed="${getFavorites().has(track.id)}">${getFavorites().has(track.id) ? '♥' : '♡'}</button>
+        <div class="track-row-actions"><button data-action="export" aria-label="Save MP3 for ${escape(track.title)}" title="Save MP3">↓</button><button data-action="favorite" aria-label="${getFavorites().has(track.id) ? 'Unfavorite' : 'Favorite'} ${escape(track.title)}" aria-pressed="${getFavorites().has(track.id)}">${getFavorites().has(track.id) ? '♥' : '♡'}</button>
         ${tab === 'library' ? '<button data-action="next" title="Play next" aria-label="Play next">Next</button>' : `<button data-action="up" aria-label="Move ${escape(track.title)} up" ${!canMove || sourceIndex === 0 || (tab === 'queue' && sourceIndex === currentIndex + 1) ? 'disabled' : ''}>↑</button><button data-action="down" aria-label="Move ${escape(track.title)} down" ${!canMove || sourceIndex === source.length - 1 ? 'disabled' : ''}>↓</button><button data-action="remove" aria-label="Remove ${escape(track.title)} from ${tab === 'queue' ? 'queue' : 'playlist'}" ${tab === 'queue' && current ? 'disabled title="Current track stays in the queue"' : ''}>×</button>`}</div></article>`;
     }).join('') || `<div class="workspace-empty"><strong>${$('#workspace-search').value ? 'No matches yet.' : tab === 'queue' ? 'Make room for your next favorite.' : 'A little space for something good.'}</strong><p>${tab === 'playlists' ? 'Select tracks in Library and add them to this playlist.' : 'Add media from your device, or adjust your filters.'}</p></div>`;
     updateSelection();
@@ -107,6 +107,7 @@ export function createLibraryWorkspace({ engine, getPlaylists, savePlaylists, ge
     const p = playlist();
     if (['next', 'queue-selected'].includes(action) || (tab === 'queue' && ['up', 'down', 'remove'].includes(action))) onQueueEdit();
     if (action === 'close') host.close();
+    if (action === 'export') { host.close(); await onExport(id); }
     if (action === 'toggle') { await beforePlay(); await engine.toggle(); }
     if (action === 'import') { host.close(); addMedia(); }
     if (action === 'play') { await playTrack(id, tab !== 'queue'); }

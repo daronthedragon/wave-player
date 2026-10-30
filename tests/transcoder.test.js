@@ -9,6 +9,7 @@ test('conversion validates type, size and cancellation before starting a worker'
   await assert.rejects(converter.convert(new Blob()), /empty/);
   await assert.rejects(converter.convert(new LargeBlob(['x'])), /256 MB/);
   await assert.rejects(converter.convert(new Blob(['x']), { kind: 'image' }), /audio or video/);
+  await assert.rejects(converter.convert(new Blob(['x']), { audioFormat: 'aac' }), /WAV or MP3/);
   const controller = new AbortController(); controller.abort();
   await assert.rejects(converter.convert(new Blob(['x']), { signal: controller.signal }), { name: 'AbortError' });
 });
@@ -36,12 +37,16 @@ test('worker conversion produces typed output, reports progress and releases wor
     const output = await converter.convert(new Blob(['source']), { kind: 'video', fileName: 'movie.avi' });
     assert.equal(output.type, 'video/mp4');
     assert.equal(output.size, 3);
-    assert.equal(worker.url, 'https://example.com/wave-player/src/transcoder-worker.js?v=2.0.0');
+    assert.equal(worker.url, 'https://example.com/wave-player/src/transcoder-worker.js?v=2.1.0');
     assert.equal(worker.message.fileName, 'movie.avi');
     assert.equal(worker.message.coreURL, 'https://example.com/wave-player/vendor/ffmpeg/ffmpeg-core.js');
     assert.equal(worker.terminated, true);
     assert.equal(converter.job, null);
     assert.equal(progress.at(-1).progress, 0.5);
+    const mp3 = await converter.convert(new Blob(['audio']), { kind: 'audio', audioFormat: 'mp3', fileName: 'song.m4a' });
+    assert.equal(mp3.type, 'audio/mpeg');
+    assert.equal(worker.message.audioFormat, 'mp3');
+    assert.equal(worker.terminated, true);
   } finally { globalThis.Worker = oldWorker; globalThis.document = oldDocument; }
 });
 

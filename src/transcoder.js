@@ -9,8 +9,9 @@ export class MediaTranscoder extends EventTarget {
     this.job = null;
   }
 
-  async convert(blob, { kind = 'video', fileName = 'media', signal } = {}) {
+  async convert(blob, { kind = 'video', fileName = 'media', audioFormat = 'wav', signal } = {}) {
     if (!(blob instanceof Blob)) throw new TypeError('Select an audio or video file to convert.');
+    if (!['wav', 'mp3'].includes(audioFormat)) throw new TypeError('Choose WAV or MP3 audio output.');
     if (!['audio', 'video'].includes(kind)) throw new TypeError('Choose audio or video conversion.');
     if (!blob.size) throw new Error('This file is empty.');
     if (blob.size > MAX_INPUT_BYTES) throw new Error('Local conversion supports files up to 256 MB. Convert larger files with a desktop converter.');
@@ -44,7 +45,7 @@ export class MediaTranscoder extends EventTarget {
         if (EMBEDDED_FFMPEG) {
           job.workerURL = URL.createObjectURL(new Blob([EMBEDDED_FFMPEG.workerSource], { type: 'text/javascript' }));
         }
-        job.worker = new Worker(job.workerURL || new URL('src/transcoder-worker.js?v=2.0.0', base));
+        job.worker = new Worker(job.workerURL || new URL('src/transcoder-worker.js?v=2.1.0', base));
         job.worker.onerror = () => job.finish(new Error('The local converter could not start. Reload the player or use a recent browser.'));
         job.worker.onmessageerror = () => job.finish(new Error('The converter could not read this file in memory. Try a smaller file.'));
         job.worker.onmessage = ({ data }) => {
@@ -55,11 +56,11 @@ export class MediaTranscoder extends EventTarget {
               message: String(data.message || 'Converting locally…')
             } }));
           } else if (data.type === 'result') {
-            job.finish(null, new Blob([data.bytes], { type: kind === 'video' ? 'video/mp4' : 'audio/wav' }));
+            job.finish(null, new Blob([data.bytes], { type: kind === 'video' ? 'video/mp4' : audioFormat === 'mp3' ? 'audio/mpeg' : 'audio/wav' }));
           } else if (data.type === 'error') job.finish(new Error(data.message || 'This file could not be converted.'));
         };
         job.worker.postMessage({
-          type: 'convert', bytes, kind, fileName,
+          type: 'convert', bytes, kind, fileName, audioFormat,
           coreURL: new URL('vendor/ffmpeg/ffmpeg-core.js', base).href,
           wasmURL: new URL('vendor/ffmpeg/ffmpeg-core.wasm', base).href,
           embedded: EMBEDDED_FFMPEG ? { coreSource: EMBEDDED_FFMPEG.coreSource, wasmBase64: EMBEDDED_FFMPEG.wasmBase64 } : null

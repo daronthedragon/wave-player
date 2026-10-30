@@ -1,9 +1,10 @@
-import { createLibraryWorkspace } from './library-workspace.js?v=2.0.0';
-import { requestLibraryProtection, libraryStorageStatus } from './library-storage.js?v=2.0.0';
-import { createOnlineLibrary } from './online-library.js?v=2.0.0';
-import { MediaTranscoder } from './transcoder.js?v=2.0.0';
-import { WaveVisualizer } from './visualizer.js?v=2.0.0';
-import { PlayerEngine, mediaKind } from './audio-engine.js?v=2.0.0';
+import { createMediaSaver } from './media-saver.js?v=2.1.0';
+import { createLibraryWorkspace } from './library-workspace.js?v=2.1.0';
+import { requestLibraryProtection, libraryStorageStatus } from './library-storage.js?v=2.1.0';
+import { createOnlineLibrary } from './online-library.js?v=2.1.0';
+import { MediaTranscoder } from './transcoder.js?v=2.1.0';
+import { WaveVisualizer } from './visualizer.js?v=2.1.0';
+import { PlayerEngine, mediaKind } from './audio-engine.js?v=2.1.0';
 
 const icons = {
  video:'M3 5h18v14H3zM3 9h18M7 5v4M12 5v4M17 5v4M9 12l6 3-6 3Z', refresh:'M20 7V2l-4 4M4 17v5l4-4M20 7a9 9 0 0 0-15-3M4 17a9 9 0 0 0 15 3',
@@ -104,12 +105,12 @@ if('serviceWorker'in navigator&&['https:','http:'].includes(location.protocol)){
       // Reload before enabling imports so temporary native files never enter its cache.
       if(controlled&&removed.some(Boolean)){location.reload();await new Promise(()=>{});}
     } catch {}
-  }else navigator.serviceWorker.register('./sw.js?v=2.0.0').catch(()=>{});
+  }else navigator.serviceWorker.register('./sw.js?v=2.1.0').catch(()=>{});
 }
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('#install-now').hidden=false});
 window.addEventListener('appinstalled',()=>{installPrompt=null;$('#install-now').hidden=true;$('#install-status').textContent='WAVE is installed. Open it from your Home Screen.'});
 function showInstallGuide(){
-  const installed=matchMedia('(display-mode: standalone)').matches||navigator.standalone||/WAVEAndroid\//.test(navigator.userAgent);
+  const installed=matchMedia('(display-mode: standalone)').matches||navigator.standalone||/WAVE(?:Android|iOS)\//.test(navigator.userAgent);
   $('#install-status').textContent=installed?'WAVE is running as an installed app.':'Your music room, one tap from your Home Screen.';
   $('#install-now').hidden=!installPrompt||installed;
   $('#install-dialog').showModal();
@@ -148,8 +149,10 @@ const onlineLibrary=createOnlineLibrary({
 });
 $('#quick-link').onclick=()=>onlineLibrary.add();
 $('#quick-install').onclick=showInstallGuide;
+const mediaSaver=createMediaSaver({engine,transcoder,notify:toast});
+$('#mobile-save-mp3').onclick=()=>{const track=selectedTrack();$('#track-dialog').close();if(track)void mediaSaver.open(track.id)};
 const workspace=createLibraryWorkspace({
-  engine,getPlaylists:()=>playlists,getFavorites:()=>favorites,onQueueEdit:()=>{queueSource='custom'},
+  engine,onExport:id=>mediaSaver.open(id),getPlaylists:()=>playlists,getFavorites:()=>favorites,onQueueEdit:()=>{queueSource='custom'},
   savePlaylists:items=>{playlists=items;const saved=save('wave-playlists',playlists);menuKey='';if(activePlaylist&&!playlists.some(p=>p.id===activePlaylist)){if(queueSource===activePlaylist)queueSource='custom';activePlaylist=null;if(view==='playlist')setView('playlists')}render(engine.snapshot);return saved},
   saveFavorites:items=>{favorites=items;const saved=save('wave-favorites',[...favorites]);menuKey='';render(engine.snapshot);return saved},
   beforePlay:async()=>{queueSource='custom';await resumeGraph()},notify:toast,addMedia:()=>$('#file-input').click()

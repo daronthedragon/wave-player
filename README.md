@@ -23,6 +23,16 @@ an editable play queue, and a place for the files you already love.
   <img src="docs/player-preview.png" alt="WAVE's live player: a dark XMB-style music library with a flowing silver wave, category icons, and playback controls" width="100%">
 </a>
 
+## Pocket player, real MP3 files
+
+**WAVE 2.1 adds an MP3 saver and an iPhone/iPad app target.** Choose the down-arrow beside a track in Library, or **Track options → Save as MP3**. WAVE encodes a real 192 kbps MP3 on your device. Keep the copy in WAVE for offline replay and playlists, download it, or use the file-sharing sheet where supported. The original stays unchanged.
+
+The browser’s initial offline shell is about **415 KB** of source assets. The **32.3 MB** converter is fetched only when you first request MP3 export or format conversion, then cached for reuse. The portable HTML and native app bundle the converter so they can convert offline from first launch.
+
+**iOS application:** a dedicated Capacitor/WKWebView project and macOS build workflow are in [ios/](ios/README.md). The iPhone build is unsigned and **must be signed before installation**; there is no public TestFlight or App Store release yet. Safari’s **Add to Home Screen** remains available immediately. The new app target does not add direct YouTube/SoundCloud extraction.
+
+MP3 export works on audio already imported or retrieved into WAVE. It does not make an unplayable YouTube/SoundCloud bookmark downloadable. See the [provider limitations](#youtube--soundcloud) before choosing a platform.
+
 ## Your collection, in focus
 
 **WAVE 2.0 brings a new library workspace to the familiar XMB.** Open **Library** to find a track, build a collection, or line up the rest of your evening.

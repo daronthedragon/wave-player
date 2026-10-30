@@ -1,0 +1,16 @@
+{
+  "appId": "io.github.daronthedragon.waveplayer",
+  "appName": "WAVE Player",
+  "webDir": "www",
+  "loggingBehavior": "debug",
+  "backgroundColor": "#080d17",
+  "ios": {
+    "path": "native",
+    "scheme": "App",
+    "contentInset": "never",
+    "appendUserAgent": " WAVEiOS/1",
+    "preferredContentMode": "mobile",
+    "allowsLinkPreview": false
+  },
+  "server": { "hostname": "localhost", "iosScheme": "capacitor" }
+}

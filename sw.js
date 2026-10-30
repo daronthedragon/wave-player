@@ -1,11 +1,11 @@
 /* Bump this version whenever a new release changes the offline shell. */
-const CACHE_NAME = 'wave-shell-v11';
+const CACHE_NAME = 'wave-shell-v12';
 const BASE = new URL('./', self.location.href);
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
-  './src/main.js?v=2.0.0', './src/library-workspace.js?v=2.0.0', './src/library-tools.js?v=2.0.0', './src/online-library.js?v=2.0.0', './src/online-links.js?v=2.0.0', './src/direct-audio.js?v=2.0.0', './src/library-storage.js?v=2.0.0', './src/styles.css?v=2.0.0', './src/audio-engine.js?v=2.0.0', './src/visualizer.js?v=2.0.0', './src/ps3-wave.js?v=2.0.0',
-  './src/transcoder.js?v=2.0.0', './src/transcoder-worker.js?v=2.0.0',
-  './vendor/ffmpeg/ffmpeg-core.js', './vendor/ffmpeg/ffmpeg-core.wasm',
+  './src/main.js?v=2.1.0', './src/library-workspace.js?v=2.1.0', './src/media-saver.js?v=2.1.0', './src/library-tools.js?v=2.1.0', './src/online-library.js?v=2.1.0', './src/online-links.js?v=2.1.0', './src/direct-audio.js?v=2.1.0', './src/library-storage.js?v=2.1.0', './src/styles.css?v=2.1.0', './src/audio-engine.js?v=2.1.0', './src/visualizer.js?v=2.1.0', './src/ps3-wave.js?v=2.1.0',
+  './src/transcoder.js?v=2.1.0', './src/transcoder-worker.js?v=2.1.0',
+  // The large converter is fetched and cached only when conversion is requested.
   './assets/wave-background.svg', './assets/cover-drift.svg',
   './assets/cover-nocturne.svg', './assets/cover-orbit.svg',
   './assets/ps3/xmb_icon_001.png', './assets/ps3/xmb_icon_003.png', './assets/ps3/xmb_icon_004.png', './assets/ps3/xmb_icon_037.png', './assets/ps3/xmb_icon_008.png', './assets/ps3/icon_fw_track.png', './assets/ps3/icon_fw_folder.png',

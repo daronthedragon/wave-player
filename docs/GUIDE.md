@@ -1,4 +1,4 @@
-# WAVE 2.0 — complete guide
+# WAVE 2.1 — complete guide
 
 [← Back to WAVE](../README.md)
 
@@ -118,3 +118,17 @@ This is an independent project, not affiliated with or endorsed by Sony, PlaySta
 Original WAVE source is MIT licensed; see [LICENSE](../LICENSE). The bundled FFmpeg core is **GPL-2.0-or-later**, and the combined program code in the downloadable HTML is distributed under that license. This does not relicense the separately copyrighted PS3 image assets. Decoder licenses, exact file hashes, and source/build links are included in [vendor/ffmpeg/NOTICE.md](../vendor/ffmpeg/NOTICE.md), with license copies also embedded in the standalone HTML.
 
 The Android APK also includes the GPL-3.0 youtubedl-android runtime. The combined Android program is distributed under GPL-3.0; original WAVE source retains its MIT notice. See [Android third-party notices](../android/THIRD_PARTY_NOTICES.md) for pinned dependency versions, licenses, and source links.
+
+## MP3 saving and the iOS application
+
+In **Library**, choose the down-arrow beside a track, or use **Track options → Save as MP3**. The converter encodes the selected audio as MP3 at 192 kbps. A video must contain an audio stream. The original file remains unchanged.
+
+- **Keep MP3 in WAVE:** add a separate MP3 to the local library. It can be played offline and placed in playlists when device storage succeeds.
+- **Download MP3:** save a file through the browser download manager. This is offered in the browser, not the Android WebView.
+- **Share / Save to Files:** shown when the browser or iOS native adapter supports file sharing. Choose a destination from the system sheet.
+
+The conversion limit is 256 MB of source data. First-time browser conversion needs internet to load the converter; normal playback of saved media and the smaller app shell do not. The browser caches the converter after use. The standalone HTML and native app include it. Clearing browser data removes the cache and can remove saved media too.
+
+Provider bookmarks must first become playable local audio through a supported importer or companion; MP3 conversion does not retrieve YouTube/SoundCloud links by itself.
+
+The separate [iOS app project](../ios/README.md) builds on macOS/Xcode. Its unsigned iPhone artifact is for signing or development, not a direct-install download. Apple signing is still required; no TestFlight or App Store release is provided. It has separate storage from Safari/Home Screen installations. Native file export and playback must be validated on a physical device before claiming full device compatibility.

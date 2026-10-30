@@ -5,6 +5,19 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('../sw.js', import.meta.url), 'utf8');
 
+test('first offline shell install includes MP3 controls without eagerly downloading the converter', async () => {
+  const listeners = {}; let requested = [], installation;
+  vm.runInNewContext(source, {
+    URL, Request, Response,
+    self: { location: { href: 'https://daronthedragon.github.io/wave-player/sw.js' }, addEventListener: (name, fn) => { listeners[name] = fn; } },
+    caches: { open: async () => ({ addAll: async requests => { requested = requests.map(request => request.url); } }) }
+  });
+  listeners.install({ waitUntil: promise => { installation = promise; } });
+  await installation;
+  assert.ok(requested.some(url => url.includes('/src/media-saver.js')));
+  assert.ok(requested.every(url => !url.includes('/vendor/ffmpeg/')));
+});
+
 test('service worker leaves temporary native audio entirely outside its cache', () => {
   const listeners = {};
   vm.runInNewContext(source, {

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-test('bundled WASM converts synthetic AVI video to MP4 and extracts playable WAV audio', { timeout: 30000 }, async () => {
+test('bundled WASM converts synthetic AVI video to MP4 and encodes playable WAV and MP3 audio', { timeout: 30000 }, async () => {
   const coreSource = await readFile(new URL('../vendor/ffmpeg/ffmpeg-core.js', import.meta.url), 'utf8');
   const wasmBinary = new Uint8Array(await readFile(new URL('../vendor/ffmpeg/ffmpeg-core.wasm', import.meta.url)));
   // The vendored UMD core targets a classic worker. Supply its location without
@@ -25,4 +25,9 @@ test('bundled WASM converts synthetic AVI video to MP4 and extracts playable WAV
   assert.equal(new TextDecoder().decode(wav.slice(0, 4)), 'RIFF');
   assert.equal(new TextDecoder().decode(wav.slice(8, 12)), 'WAVE');
   assert.ok(wav.length > 100000);
+  run('-i', 'input.avi', '-map', '0:a:0', '-vn', '-sn', '-dn', '-c:a', 'libmp3lame', '-b:a', '192k', '-ar', '44100', '-ac', '2', 'output.mp3');
+  const mp3 = core.FS.readFile('output.mp3');
+  assert.ok(mp3.length > 10000 && mp3.length < wav.length);
+  run('-i', 'output.mp3', '-f', 'null', '-'); // A decoder must accept the generated MP3.
+
 });

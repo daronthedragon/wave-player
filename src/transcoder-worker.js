@@ -31,11 +31,13 @@ self.onmessage = async ({ data }) => {
     core.setProgress(({ progress: value }) => progress(Math.max(0, Math.min(0.99, value || 0)), 'Converting on your device…'));
     const extension = String(data.fileName || '').match(/\.([a-zA-Z0-9]{1,10})$/)?.[1] || 'bin';
     const input = `input.${extension}`;
-    const output = data.kind === 'video' ? 'output.mp4' : 'output.wav';
+    const mp3 = data.kind === 'audio' && data.audioFormat === 'mp3';
+    const output = data.kind === 'video' ? 'output.mp4' : mp3 ? 'output.mp3' : 'output.wav';
     core.FS.writeFile(input, new Uint8Array(data.bytes));
     progress(0.01, 'Converting on your device…');
     const args = data.kind === 'video'
       ? ['-i', input, '-map', '0:v:0', '-map', '0:a:0?', '-sn', '-dn', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', output]
+      : mp3 ? ['-i', input, '-map', '0:a:0', '-vn', '-sn', '-dn', '-c:a', 'libmp3lame', '-b:a', '192k', '-ar', '44100', '-ac', '2', output]
       : ['-i', input, '-map', '0:a:0', '-vn', '-sn', '-dn', '-c:a', 'pcm_s16le', '-ar', '48000', '-ac', '2', output];
     core.setTimeout(10 * 60 * 1000);
     core.exec(...args);
