@@ -43,6 +43,8 @@ YouTubeKit is MIT licensed; its notice is in `licenses/YouTubeKit-MIT.txt` and b
 
 ## CI output
 
+The October 30, 2026 iPhone simulator probe downloaded and validated the public SoundCloud test track: 4,320,403 bytes, AAC audio, approximately 213.84 seconds. The YouTube probe failed with YouTubeKit `extractError`; do not describe YouTube importing as verified working. These diagnostics validate native downloading and decodable audio, not physical-device playback or file sharing. The artifact includes `native-audio-diagnostic.json` with separate provider results.
+
 The **iPhone and iPad app** workflow builds the simulator app, launches it in an available iPhone simulator, saves a screenshot, and builds an unsigned arm64 iPhone app. All outputs are Actions artifacts, not automatic public releases:
 
 - `WAVE-iOS-UNSIGNED.ipa` — requires Apple signing/provisioning before device installation.

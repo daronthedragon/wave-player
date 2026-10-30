@@ -33,6 +33,8 @@ The browser’s initial offline shell is about **418 KB** of source assets. The 
 
 MP3 export works on audio already imported or retrieved into WAVE. It does not make an unplayable YouTube/SoundCloud bookmark downloadable. See the [provider limitations](#youtube--soundcloud) before choosing a platform.
 
+**Native iOS verification — October 30, 2026:** the simulator downloaded and validated a complete SoundCloud AAC track (4.32 MB, about 3:34). The YouTube test failed at extraction; YouTube support is experimental and **not verified working**. Physical-iPhone playback and native sharing still require testing after signing.
+
 ![Real MP3 conversion and offline library saving in the live WAVE website](docs/mp3-saver-preview.png)
 
 <details>
