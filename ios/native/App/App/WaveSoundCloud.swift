@@ -89,7 +89,10 @@ enum WaveSoundCloud {
             guard !tracks.isEmpty, duration.isFinite, duration > 0, duration <= 7200,
                   abs(duration - playlist.duration) < 5 else { throw waveError("The downloaded SoundCloud audio could not be validated.") }
             let size = try destination.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-            return ["token": token, "name": String((track["title"] as? String ?? "SoundCloud audio").prefix(120)) + ".m4a", "type": "audio/mp4", "size": size, "duration": duration]
+            let title = track["title"] as? String ?? "SoundCloud audio"
+            let artist = (track["user"] as? [String: Any])?["username"] as? String ?? ""
+            let filename = artist.isEmpty ? title : "\(artist) - \(title)"
+            return ["token": token, "name": String(filename.prefix(120)) + ".m4a", "type": "audio/mp4", "size": size, "duration": duration]
         } catch { try? FileManager.default.removeItem(at: destination); throw error }
     }
 }

@@ -7,6 +7,15 @@ let waveAudioLimit = 64 * 1024 * 1024
 func waveError(_ message: String) -> NSError {
     NSError(domain: "WAVEAudio", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
 }
+private func waveAudioFailure(_ error: Error) -> String {
+    if let error = error as? YouTubeKitError {
+        if error == .extractError {
+            return "YouTube did not return a usable audio stream. This video or network may require YouTube verification, or the extractor may need an update."
+        }
+        return "YouTube could not provide this audio (\(error.rawValue))."
+    }
+    return error.localizedDescription.replacingOccurrences(of: "https?://[^\\s]+", with: "[provider URL]", options: .regularExpression)
+}
 
 // Download to disk, enforcing the byte limit while receiving data, including redirects.
 final class WaveDownload: NSObject, URLSessionDownloadDelegate {
@@ -40,6 +49,8 @@ final class WaveDownload: NSObject, URLSessionDownloadDelegate {
                 request.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
                 self.task = session.downloadTask(with: request)
                 self.task?.resume()
+                // Close the race between the cancellation check and creating the URLSession task.
+                if Task.isCancelled { self.task?.cancel() }
             }
         }, onCancel: { self.task?.cancel() })
     }
@@ -162,7 +173,7 @@ public class WaveAudioPlugin: CAPPlugin, CAPBridgedPlugin {
                     self.files.insert(token)
                     call.resolve(result)
                 } catch {
-                    call.reject(Task.isCancelled ? "Audio import cancelled." : "Audio import failed: \(error.localizedDescription)")
+                    call.reject(Task.isCancelled ? "Audio import cancelled." : "Audio import failed: \(waveAudioFailure(error))")
                 }
             }
         }
@@ -200,6 +211,13 @@ public class WaveAudioPlugin: CAPPlugin, CAPBridgedPlugin {
 
 class WaveBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
+        // Only disposable files named by WAVE's UUID cache convention are removed.
+        // The user's library is stored separately in WKWebView/IndexedDB.
+        if let leftovers = try? FileManager.default.contentsOfDirectory(at: WaveAudioImport.directory, includingPropertiesForKeys: nil) {
+            for file in leftovers where ["m4a", "part"].contains(file.pathExtension) && UUID(uuidString: file.deletingPathExtension().lastPathComponent) != nil {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
         bridge?.registerPluginInstance(WaveAudioPlugin())
         #if DEBUG
         // Only CI/developers explicitly launching this argument perform a live provider probe.
@@ -225,9 +243,35 @@ class WaveBridgeViewController: CAPBridgeViewController {
             return result
         } catch {
             // Avoid storing signed provider URLs or request parameters in CI artifacts.
-            return ["status": "provider-failed", "errorDomain": (error as NSError).domain, "errorCode": (error as NSError).code,
-                    "error": error.localizedDescription.replacingOccurrences(of: "https?://[^\\s]+", with: "[provider URL]", options: .regularExpression)]
+            var failure: [String: Any] = ["status": "provider-failed", "errorDomain": (error as NSError).domain,
+                                          "errorCode": (error as NSError).code, "error": waveAudioFailure(error)]
+            if let extractorError = error as? YouTubeKitError {
+                failure["extractorError"] = extractorError.rawValue
+                failure["watchPage"] = await watchStatus(url)
+            }
+            return failure
         }
+    }
+    private func watchStatus(_ raw: String) async -> [String: Any] {
+        guard let id = try? WaveAudioImport.videoID(raw), let url = URL(string: "https://www.youtube.com/watch?v=\(id)") else { return ["status": "not-checked"] }
+        let temporary = WaveAudioImport.directory.appendingPathComponent(UUID().uuidString + ".part")
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        do {
+            try FileManager.default.createDirectory(at: WaveAudioImport.directory, withIntermediateDirectories: true)
+            let downloader = WaveDownload(destination: temporary, limit: 4 * 1024 * 1024, hostCheck: { url in
+                WaveSoundCloudParser.secure(url) && ["youtube.com", "www.youtube.com"].contains(url?.host ?? "")
+            })
+            _ = try await downloader.download(url)
+            let text = try String(contentsOf: temporary, encoding: .utf8)
+            guard let json = WaveSoundCloudParser.capture("ytInitialPlayerResponse\\s*=\\s*(\\{.+?\\});", text).first,
+                  let data = json.data(using: .utf8), let player = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let status = player["playabilityStatus"] as? [String: Any] else { return ["status": "unrecognized-page"] }
+            let formats = (player["streamingData"] as? [String: Any])?["adaptiveFormats"] as? [[String: Any]] ?? []
+            let reason = String((status["reason"] as? String ?? "").prefix(240)).replacingOccurrences(of: "https?://[^\\s]+", with: "[provider URL]", options: .regularExpression)
+            return ["status": status["status"] as? String ?? "unknown", "reason": reason,
+                    "audioFormats": formats.filter { ($0["mimeType"] as? String ?? "").hasPrefix("audio/") }.count,
+                    "directAudioURLs": formats.filter { ($0["mimeType"] as? String ?? "").hasPrefix("audio/") && $0["url"] is String }.count]
+        } catch { return ["status": "request-failed", "errorCode": (error as NSError).code] }
     }
     #endif
 }
